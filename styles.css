@@ -7,24 +7,24 @@
 
 /* ─── CSS Variables ─── */
 :root {
-  --bg-default:  linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
-  --bg-aurora:   linear-gradient(135deg, #0d1117 0%, #1a472a 60%, #0d3b4a 100%);
-  --bg-sunset:   linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-  --bg-rose:     linear-gradient(135deg, #1c1c2e 0%, #2d1b4e 60%, #1a0a2e 100%);
-  --bg-forest:   linear-gradient(135deg, #0a1628 0%, #1a2f1a 60%, #0d1f2d 100%);
-  --bg-desert:   linear-gradient(135deg, #1a0a00 0%, #2d1b00 60%, #1a1000 100%);
+  --bg-default: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+  --bg-aurora: linear-gradient(135deg, #0d1117 0%, #1a472a 60%, #0d3b4a 100%);
+  --bg-sunset: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  --bg-rose: linear-gradient(135deg, #1c1c2e 0%, #2d1b4e 60%, #1a0a2e 100%);
+  --bg-forest: linear-gradient(135deg, #0a1628 0%, #1a2f1a 60%, #0d1f2d 100%);
+  --bg-desert: linear-gradient(135deg, #1a0a00 0%, #2d1b00 60%, #1a1000 100%);
   --bg-midnight: linear-gradient(135deg, #000000 0%, #0a0a1a 50%, #0d0d2b 100%);
-  --bg-neon:     linear-gradient(135deg, #0a001f 0%, #1a0040 40%, #002040 100%);
-  --bg-candy:    linear-gradient(135deg, #1a0030 0%, #3d005a 50%, #200040 100%);
-  --bg-arctic:   linear-gradient(135deg, #001a2e 0%, #003355 50%, #001a3a 100%);
-  --bg-lava:     linear-gradient(135deg, #1a0000 0%, #3d0a00 40%, #2a0a10 100%);
-  --bg-teal:     linear-gradient(135deg, #001a1a 0%, #003333 50%, #001f2e 100%);
-  --bg-sakura:   linear-gradient(135deg, #1a0015 0%, #2e0030 50%, #1a0010 100%);
-  --bg-cosmic:   linear-gradient(135deg, #05001a 0%, #150040 45%, #001a30 100%);
-  --bg-copper:   linear-gradient(135deg, #1a0a00 0%, #2e1500 45%, #1a0a05 100%);
-  --bg-slate:    linear-gradient(135deg, #0a0f1a 0%, #1a2030 50%, #0d1520 100%);
-  --bg-jungle:   linear-gradient(135deg, #001a05 0%, #0a2e00 50%, #001a10 100%);
-  --bg-galaxy:   linear-gradient(160deg, #020012 0%, #0d003d 35%, #00062e 70%, #120025 100%);
+  --bg-neon: linear-gradient(135deg, #0a001f 0%, #1a0040 40%, #002040 100%);
+  --bg-candy: linear-gradient(135deg, #1a0030 0%, #3d005a 50%, #200040 100%);
+  --bg-arctic: linear-gradient(135deg, #001a2e 0%, #003355 50%, #001a3a 100%);
+  --bg-lava: linear-gradient(135deg, #1a0000 0%, #3d0a00 40%, #2a0a10 100%);
+  --bg-teal: linear-gradient(135deg, #001a1a 0%, #003333 50%, #001f2e 100%);
+  --bg-sakura: linear-gradient(135deg, #1a0015 0%, #2e0030 50%, #1a0010 100%);
+  --bg-cosmic: linear-gradient(135deg, #05001a 0%, #150040 45%, #001a30 100%);
+  --bg-copper: linear-gradient(135deg, #1a0a00 0%, #2e1500 45%, #1a0a05 100%);
+  --bg-slate: linear-gradient(135deg, #0a0f1a 0%, #1a2030 50%, #0d1520 100%);
+  --bg-jungle: linear-gradient(135deg, #001a05 0%, #0a2e00 50%, #001a10 100%);
+  --bg-galaxy: linear-gradient(160deg, #020012 0%, #0d003d 35%, #00062e 70%, #120025 100%);
 
   --glass-bg: rgba(255, 255, 255, 0.06);
   --glass-border: rgba(255, 255, 255, 0.12);
@@ -110,23 +110,73 @@ textarea {
   transition: background var(--transition-slow);
 }
 
-#desktop.wallpaper-aurora   { background: var(--bg-aurora);   }
-#desktop.wallpaper-sunset   { background: var(--bg-sunset);   }
-#desktop.wallpaper-rose     { background: var(--bg-rose);     }
-#desktop.wallpaper-forest   { background: var(--bg-forest);   }
-#desktop.wallpaper-desert   { background: var(--bg-desert);   }
-#desktop.wallpaper-midnight { background: var(--bg-midnight); }
-#desktop.wallpaper-neon     { background: var(--bg-neon);     }
-#desktop.wallpaper-candy    { background: var(--bg-candy);    }
-#desktop.wallpaper-arctic   { background: var(--bg-arctic);   }
-#desktop.wallpaper-lava     { background: var(--bg-lava);     }
-#desktop.wallpaper-teal     { background: var(--bg-teal);     }
-#desktop.wallpaper-sakura   { background: var(--bg-sakura);   }
-#desktop.wallpaper-cosmic   { background: var(--bg-cosmic);   }
-#desktop.wallpaper-copper   { background: var(--bg-copper);   }
-#desktop.wallpaper-slate    { background: var(--bg-slate);    }
-#desktop.wallpaper-jungle   { background: var(--bg-jungle);   }
-#desktop.wallpaper-galaxy   { background: var(--bg-galaxy);   }
+#desktop.wallpaper-aurora {
+  background: var(--bg-aurora);
+}
+
+#desktop.wallpaper-sunset {
+  background: var(--bg-sunset);
+}
+
+#desktop.wallpaper-rose {
+  background: var(--bg-rose);
+}
+
+#desktop.wallpaper-forest {
+  background: var(--bg-forest);
+}
+
+#desktop.wallpaper-desert {
+  background: var(--bg-desert);
+}
+
+#desktop.wallpaper-midnight {
+  background: var(--bg-midnight);
+}
+
+#desktop.wallpaper-neon {
+  background: var(--bg-neon);
+}
+
+#desktop.wallpaper-candy {
+  background: var(--bg-candy);
+}
+
+#desktop.wallpaper-arctic {
+  background: var(--bg-arctic);
+}
+
+#desktop.wallpaper-lava {
+  background: var(--bg-lava);
+}
+
+#desktop.wallpaper-teal {
+  background: var(--bg-teal);
+}
+
+#desktop.wallpaper-sakura {
+  background: var(--bg-sakura);
+}
+
+#desktop.wallpaper-cosmic {
+  background: var(--bg-cosmic);
+}
+
+#desktop.wallpaper-copper {
+  background: var(--bg-copper);
+}
+
+#desktop.wallpaper-slate {
+  background: var(--bg-slate);
+}
+
+#desktop.wallpaper-jungle {
+  background: var(--bg-jungle);
+}
+
+#desktop.wallpaper-galaxy {
+  background: var(--bg-galaxy);
+}
 
 #desktop.wallpaper-custom {
   background-size: cover;
@@ -148,6 +198,7 @@ textarea {
   width: 100%;
   height: 100%;
   padding: 20px;
+  outline: none;
 }
 
 /* ─── Desktop Icons ─── */
@@ -227,7 +278,7 @@ textarea {
 }
 
 .icon-emoji svg,
-.icon-img-wrap > i svg {
+.icon-img-wrap>i svg {
   width: 38px;
   height: 38px;
   stroke: var(--text-primary);
@@ -243,6 +294,7 @@ textarea {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  padding: 0 0.5rem;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8), 0 0 10px rgba(0, 0, 0, 0.6);
   letter-spacing: 0.01em;
 }
@@ -324,6 +376,14 @@ textarea {
   justify-content: center;
   z-index: 100;
   animation: fadeIn var(--transition);
+}
+
+#folder-overlay.closing {
+  animation: fadeOut var(--transition) forwards;
+}
+
+#folder-overlay.closing #folder-modal {
+  animation: scaleDown var(--transition) forwards;
 }
 
 #folder-modal {
@@ -663,6 +723,10 @@ textarea {
   display: none !important;
 }
 
+#settings-panel.closing {
+  animation: slideOutRight var(--transition-slow) forwards;
+}
+
 @keyframes slideInRight {
   from {
     transform: translateX(100%);
@@ -835,6 +899,14 @@ input[type="file"] {
   justify-content: center;
   z-index: 200;
   animation: fadeIn var(--transition);
+}
+
+.modal-overlay.closing {
+  animation: fadeOut var(--transition) forwards;
+}
+
+.modal-overlay.closing .modal-box {
+  animation: scaleDown var(--transition) forwards;
 }
 
 .modal-box {
@@ -1187,6 +1259,40 @@ input[type="file"] {
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes scaleDown {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateX(100%);
+    opacity: 0;
   }
 }
 
