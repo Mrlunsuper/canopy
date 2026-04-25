@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Canopy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="lucide.min.js"></script>
+</head>
+
+<body>
+
+  <!-- Desktop Area -->
+  <div id="desktop">
+    <!-- Clock + Search: floating center -->
+    <div id="center-widget">
+      <div id="taskbar-clock">
+        <div id="clock-time">00:00</div>
+        <div id="clock-date">Monday, 01/01</div>
+      </div>
+      <div id="search-bar">
+        <span id="search-icon"><i data-lucide="search"></i></span>
+        <input type="text" id="search-input" placeholder="Search or enter URL..." autocomplete="off" />
+      </div>
+    </div>
+
+    <!-- Floating action buttons top-right -->
+    <div id="floating-actions">
+      <button id="btn-import" class="fab" title="Import from Bookmarks"><i data-lucide="bookmark-plus"></i></button>
+      <button id="btn-settings" class="fab" title="Settings"><i data-lucide="settings"></i></button>
+    </div>
+
+    <div id="desktop-grid" tabindex="0"></div>
+  </div>
+
+  <!-- Folder Overlay -->
+  <div id="folder-overlay" class="hidden">
+    <div id="folder-modal">
+      <div id="folder-modal-header">
+        <span id="folder-modal-title">Folder</span>
+        <button id="folder-modal-close" aria-label="Close folder"><i data-lucide="x"></i></button>
+      </div>
+      <div id="folder-modal-grid"></div>
+    </div>
+  </div>
+
+  <!-- Context Menu -->
+  <div id="context-menu" class="hidden">
+    <ul>
+      <li id="ctx-add-shortcut" class="ctx-item">
+        <span class="ctx-icon"><i data-lucide="link"></i></span> Add Shortcut
+      </li>
+      <li id="ctx-add-folder" class="ctx-item">
+        <span class="ctx-icon"><i data-lucide="folder-plus"></i></span> Create Folder
+      </li>
+      <li class="ctx-separator" id="ctx-edit-sep"></li>
+      <li id="ctx-edit" class="ctx-item hidden">
+        <span class="ctx-icon"><i data-lucide="pencil"></i></span> Edit
+      </li>
+      <li id="ctx-delete" class="ctx-item hidden ctx-danger">
+        <span class="ctx-icon"><i data-lucide="trash-2"></i></span> Delete
+      </li>
+      <li class="ctx-separator" id="ctx-wallpaper-sep"></li>
+      <li id="ctx-arrange" class="ctx-item">
+        <span class="ctx-icon"><i data-lucide="layout-grid"></i></span> Auto Arrange
+      </li>
+      <li id="ctx-wallpaper" class="ctx-item">
+        <span class="ctx-icon"><i data-lucide="image"></i></span> Change Wallpaper
+      </li>
+    </ul>
+  </div>
+
+  <!-- Arrange Submenu -->
+  <div id="arrange-menu" class="hidden">
+    <div class="ctx-section-label">Horizontal</div>
+    <div class="arr-item" data-sort="name"    data-dir="horizontal"><span class="ctx-icon"><i data-lucide="arrow-up-a-z"></i></span> By name A → Z</div>
+    <div class="arr-item" data-sort="reverse"  data-dir="horizontal"><span class="ctx-icon"><i data-lucide="arrow-down-z-a"></i></span> By name Z → A</div>
+    <div class="arr-item" data-sort="type"    data-dir="horizontal"><span class="ctx-icon"><i data-lucide="folder"></i></span> Folders first</div>
+    <div class="arr-item" data-sort="default" data-dir="horizontal"><span class="ctx-icon"><i data-lucide="clock"></i></span> By order added</div>
+    <div class="ctx-separator"></div>
+    <div class="ctx-section-label">Vertical</div>
+    <div class="arr-item" data-sort="name"    data-dir="vertical"><span class="ctx-icon"><i data-lucide="arrow-up-a-z"></i></span> By name A → Z</div>
+    <div class="arr-item" data-sort="reverse"  data-dir="vertical"><span class="ctx-icon"><i data-lucide="arrow-down-z-a"></i></span> By name Z → A</div>
+    <div class="arr-item" data-sort="type"    data-dir="vertical"><span class="ctx-icon"><i data-lucide="folder"></i></span> Folders first</div>
+    <div class="arr-item" data-sort="default" data-dir="vertical"><span class="ctx-icon"><i data-lucide="clock"></i></span> By order added</div>
+  </div>
+
+  <div id="settings-panel" class="hidden">
+    <div id="settings-header">
+      <h2><i data-lucide="settings"></i> Settings</h2>
+      <button id="settings-close"><i data-lucide="x"></i></button>
+    </div>
+    <div id="settings-body">
+      <section class="settings-section">
+        <h3><i data-lucide="image"></i> Wallpaper</h3>
+        <div id="wallpaper-presets">
+          <div class="wp-preset active" data-wp="default"   style="background:linear-gradient(135deg,#0f0c29,#302b63,#24243e)" title="Nebula"></div>
+          <div class="wp-preset"        data-wp="aurora"    style="background:linear-gradient(135deg,#0d1117,#1a472a,#0d3b4a)" title="Aurora"></div>
+          <div class="wp-preset"        data-wp="sunset"    style="background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)" title="Ocean Night"></div>
+          <div class="wp-preset"        data-wp="rose"      style="background:linear-gradient(135deg,#1c1c2e,#2d1b4e,#1a0a2e)" title="Violet"></div>
+          <div class="wp-preset"        data-wp="forest"    style="background:linear-gradient(135deg,#0a1628,#1a2f1a,#0d1f2d)" title="Forest"></div>
+          <div class="wp-preset"        data-wp="desert"    style="background:linear-gradient(135deg,#1a0a00,#2d1b00,#1a1000)" title="Ember"></div>
+          <div class="wp-preset"        data-wp="midnight"  style="background:linear-gradient(135deg,#000000,#0a0a1a,#0d0d2b)" title="Midnight"></div>
+          <div class="wp-preset"        data-wp="neon"      style="background:linear-gradient(135deg,#0a001f,#1a0040,#002040)" title="Neon Abyss"></div>
+          <div class="wp-preset"        data-wp="candy"     style="background:linear-gradient(135deg,#1a0030,#3d005a,#200040)" title="Candy"></div>
+          <div class="wp-preset"        data-wp="arctic"    style="background:linear-gradient(135deg,#001a2e,#003355,#001a3a)" title="Arctic"></div>
+          <div class="wp-preset"        data-wp="lava"      style="background:linear-gradient(135deg,#1a0000,#3d0a00,#2a0a10)" title="Lava"></div>
+          <div class="wp-preset"        data-wp="teal"      style="background:linear-gradient(135deg,#001a1a,#003333,#001f2e)" title="Teal Deep"></div>
+          <div class="wp-preset"        data-wp="sakura"    style="background:linear-gradient(135deg,#1a0015,#2e0030,#1a0010)" title="Sakura"></div>
+          <div class="wp-preset"        data-wp="cosmic"    style="background:linear-gradient(135deg,#05001a,#150040,#001a30)" title="Cosmic Blue"></div>
+          <div class="wp-preset"        data-wp="copper"    style="background:linear-gradient(135deg,#1a0a00,#2e1500,#1a0a05)" title="Copper"></div>
+          <div class="wp-preset"        data-wp="slate"     style="background:linear-gradient(135deg,#0a0f1a,#1a2030,#0d1520)" title="Slate"></div>
+          <div class="wp-preset"        data-wp="jungle"    style="background:linear-gradient(135deg,#001a05,#0a2e00,#001a10)" title="Jungle"></div>
+          <div class="wp-preset"        data-wp="galaxy"    style="background:linear-gradient(160deg,#020012,#0d003d,#00062e,#120025)" title="Galaxy"></div>
+        </div>
+        <div id="wallpaper-upload-row">
+          <label for="wallpaper-upload" class="upload-label"><i data-lucide="upload"></i> Upload wallpaper</label>
+          <input type="file" id="wallpaper-upload" accept="image/*" />
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <h3><i data-lucide="database"></i> Data</h3>
+        <button id="btn-export-data" class="settings-btn"><i data-lucide="download"></i> Export JSON data</button>
+        <label for="import-data-file" class="settings-btn"><i data-lucide="upload"></i> Import JSON data</label>
+        <input type="file" id="import-data-file" accept=".json" />
+        <button id="btn-reset-data" class="settings-btn danger"><i data-lucide="trash-2"></i> Reset all data</button>
+      </section>
+
+      <section class="settings-section">
+        <h3><i data-lucide="info"></i> Information</h3>
+        <p class="settings-info">Canopy v1.0.0</p>
+        <p class="settings-info">Drag & drop icons to arrange layout.</p>
+        <p class="settings-info">Right-click to add shortcut or folder.</p>
+      </section>
+    </div>
+  </div>
+
+  <!-- Add/Edit Shortcut Modal -->
+  <div id="shortcut-modal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="shortcut-modal-title">Add Shortcut</h3>
+        <button class="modal-close" data-modal="shortcut-modal"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <label>URL</label>
+        <input type="url" id="sc-url" placeholder="https://example.com" />
+        <label>Display Name</label>
+        <input type="text" id="sc-name" placeholder="Website name" />
+        <label>Icon (Image URL, leave empty to use favicon)</label>
+        <input type="url" id="sc-icon" placeholder="https://..." />
+        <div id="sc-icon-preview"></div>
+      </div>
+      <div class="modal-footer">
+        <button id="sc-cancel" class="btn-secondary">Cancel</button>
+        <button id="sc-save" class="btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Folder Modal -->
+  <div id="folder-modal-create" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="folder-modal-create-title">Create Folder</h3>
+        <button class="modal-close" data-modal="folder-modal-create"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <label>Folder Name</label>
+        <input type="text" id="folder-name" placeholder="Enter folder name..." />
+        <label>Folder Icon</label>
+        <div id="folder-emoji-grid">
+          <span class="emoji-opt selected" data-emoji="folder"><i data-lucide="folder"></i></span>
+          <span class="emoji-opt" data-emoji="star"><i data-lucide="star"></i></span>
+          <span class="emoji-opt" data-emoji="gamepad-2"><i data-lucide="gamepad-2"></i></span>
+          <span class="emoji-opt" data-emoji="briefcase"><i data-lucide="briefcase"></i></span>
+          <span class="emoji-opt" data-emoji="music"><i data-lucide="music"></i></span>
+          <span class="emoji-opt" data-emoji="book-open"><i data-lucide="book-open"></i></span>
+          <span class="emoji-opt" data-emoji="shopping-cart"><i data-lucide="shopping-cart"></i></span>
+          <span class="emoji-opt" data-emoji="wrench"><i data-lucide="wrench"></i></span>
+          <span class="emoji-opt" data-emoji="palette"><i data-lucide="palette"></i></span>
+          <span class="emoji-opt" data-emoji="newspaper"><i data-lucide="newspaper"></i></span>
+          <span class="emoji-opt" data-emoji="message-circle"><i data-lucide="message-circle"></i></span>
+          <span class="emoji-opt" data-emoji="home"><i data-lucide="home"></i></span>
+          <span class="emoji-opt" data-emoji="heart"><i data-lucide="heart"></i></span>
+          <span class="emoji-opt" data-emoji="video"><i data-lucide="video"></i></span>
+          <span class="emoji-opt" data-emoji="code-2"><i data-lucide="code-2"></i></span>
+          <span class="emoji-opt" data-emoji="globe"><i data-lucide="globe"></i></span>
+          <span class="emoji-opt" data-emoji="camera"><i data-lucide="camera"></i></span>
+          <span class="emoji-opt" data-emoji="zap"><i data-lucide="zap"></i></span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="folder-cancel" class="btn-secondary">Cancel</button>
+        <button id="folder-save" class="btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import Bookmarks Modal -->
+  <div id="import-modal" class="modal-overlay hidden">
+    <div class="modal-box large">
+      <div class="modal-header">
+        <h3><i data-lucide="bookmark-plus"></i> Import from Bookmarks</h3>
+        <button class="modal-close" data-modal="import-modal"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Select bookmarks you want to add to desktop:</p>
+        <div id="bookmark-tree"></div>
+      </div>
+      <div class="modal-footer">
+        <button id="import-cancel" class="btn-secondary">Cancel</button>
+        <button id="import-select-all" class="btn-secondary">Select all</button>
+        <button id="import-confirm" class="btn-primary">Import selected</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast-container"></div>
+
+  <script src="app.js"></script>
+  <script>lucide.createIcons();</script>
+</body>
+
+</html>
