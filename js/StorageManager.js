@@ -58,7 +58,9 @@ export class StorageManager {
     return new Promise(resolve => {
       if (typeof chrome !== 'undefined' && chrome.storage) {
         chrome.storage.local.get([WALLPAPER_KEY], result => {
-          resolve(result[WALLPAPER_KEY] || null);
+          const wp = result[WALLPAPER_KEY] || null;
+          if (wp) try { localStorage.setItem(WALLPAPER_KEY, wp); } catch (e) {}
+          resolve(wp);
         });
       } else {
         resolve(localStorage.getItem(WALLPAPER_KEY) || null);
@@ -73,9 +75,8 @@ export class StorageManager {
   saveWallpaper(wp) {
     if (typeof chrome !== 'undefined' && chrome.storage) {
       chrome.storage.local.set({ [WALLPAPER_KEY]: wp });
-    } else {
-      localStorage.setItem(WALLPAPER_KEY, wp);
     }
+    try { localStorage.setItem(WALLPAPER_KEY, wp); } catch (e) {}
   }
 
   // ─── Helpers ─────────────────────────────────
@@ -92,6 +93,40 @@ export class StorageManager {
       if (item.children?.length) {
         const found = this.findItem(id, item.children);
         if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Recursively find the array that contains the item with the given ID.
+   * @param {string} id
+   * @param {Array} [list]
+   * @returns {Array|null}
+   */
+  findParentList(id, list = this.data.items) {
+    for (const item of list) {
+      if (item.id === id) return list;
+      if (item.children?.length) {
+        const foundList = this.findParentList(id, item.children);
+        if (foundList) return foundList;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Remove an item by ID from wherever it is (desktop or inside a folder).
+   * @param {string} id
+   * @returns {object|null} The removed item
+   */
+  removeItem(id) {
+    const list = this.findParentList(id);
+    if (list) {
+      const idx = list.findIndex(i => i.id === id);
+      if (idx !== -1) {
+        const [removed] = list.splice(idx, 1);
+        return removed;
       }
     }
     return null;

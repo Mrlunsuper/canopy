@@ -22,10 +22,7 @@
         <div id="clock-time">00:00</div>
         <div id="clock-date">Monday, 01/01</div>
       </div>
-      <div id="search-bar">
-        <span id="search-icon"><i data-lucide="search"></i></span>
-        <input type="text" id="search-input" placeholder="Search or enter URL..." autocomplete="off" />
-      </div>
+      <button id="clock-search-trigger" class="clock-search-btn" title="Search (/)"><i data-lucide="search"></i></button>
     </div>
 
     <!-- Floating action buttons top-right -->
@@ -35,6 +32,26 @@
     </div>
 
     <div id="desktop-grid" tabindex="0"></div>
+
+    <!-- Command Palette -->
+    <div id="command-palette" class="hidden">
+      <div id="cp-modal">
+        <div id="cp-input-wrap">
+          <i data-lucide="search" id="cp-icon"></i>
+          <input type="text" id="cp-input" placeholder='/gg {term} — Google    /yt {term} — YouTube    /cal {expr} — Calculator' autocomplete="off" />
+          <span id="cp-hint">⏎</span>
+        </div>
+        <div id="cp-results" class="hidden">
+          <div id="cp-result-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trash Zone -->
+    <div id="trash-zone" class="hidden">
+      <i data-lucide="trash-2"></i>
+      <span>Drop to delete</span>
+    </div>
   </div>
 
   <!-- Folder Overlay -->
@@ -51,6 +68,10 @@
   <!-- Context Menu -->
   <div id="context-menu" class="hidden">
     <ul>
+      <li id="ctx-refresh" class="ctx-item">
+        <span class="ctx-icon"><i data-lucide="refresh-cw"></i></span> Refresh
+      </li>
+      <li class="ctx-separator"></li>
       <li id="ctx-add-shortcut" class="ctx-item">
         <span class="ctx-icon"><i data-lucide="link"></i></span> Add Shortcut
       </li>
@@ -60,6 +81,9 @@
       <li class="ctx-separator" id="ctx-edit-sep"></li>
       <li id="ctx-edit" class="ctx-item hidden">
         <span class="ctx-icon"><i data-lucide="pencil"></i></span> Edit
+      </li>
+      <li id="ctx-move-desktop" class="ctx-item hidden">
+        <span class="ctx-icon"><i data-lucide="external-link"></i></span> Move to Desktop
       </li>
       <li id="ctx-delete" class="ctx-item hidden ctx-danger">
         <span class="ctx-icon"><i data-lucide="trash-2"></i></span> Delete
@@ -124,6 +148,11 @@
       </section>
 
       <section class="settings-section">
+        <h3><i data-lucide="globe"></i> Wallhaven</h3>
+        <button id="btn-open-wallhaven" class="settings-btn"><i data-lucide="search"></i> Search Wallhaven.cc</button>
+      </section>
+
+      <section class="settings-section">
         <h3><i data-lucide="database"></i> Data</h3>
         <button id="btn-export-data" class="settings-btn"><i data-lucide="download"></i> Export JSON data</button>
         <label for="import-data-file" class="settings-btn"><i data-lucide="upload"></i> Import JSON data</label>
@@ -133,7 +162,7 @@
 
       <section class="settings-section">
         <h3><i data-lucide="info"></i> Information</h3>
-        <p class="settings-info">Canopy v1.0.0</p>
+        <p class="settings-info">Canopy v1.1.0</p>
         <p class="settings-info">Drag & drop icons to arrange layout.</p>
         <p class="settings-info">Right-click to add shortcut or folder.</p>
       </section>
@@ -221,9 +250,51 @@
     </div>
   </div>
 
+  <!-- Wallhaven Search Modal -->
+  <div id="wallhaven-modal" class="modal-overlay hidden">
+    <div class="modal-box large">
+      <div class="modal-header">
+        <h3><i data-lucide="globe"></i> Wallhaven Search</h3>
+        <button class="modal-close" data-modal="wallhaven-modal"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div id="wh-modal-search-row">
+          <input type="text" id="wh-modal-query" placeholder="Search wallpapers (e.g. nature, abstract, minimal)..." />
+          <button id="wh-modal-search-btn"><i data-lucide="search"></i></button>
+        </div>
+        <div id="wh-modal-status" class="wh-status"></div>
+        <div id="wh-modal-results"></div>
+        <div id="wh-modal-pagination" class="hidden">
+          <button id="wh-prev-btn" class="btn-secondary"><i data-lucide="chevron-left"></i> Prev</button>
+          <span id="wh-page-indicator"></span>
+          <button id="wh-next-btn" class="btn-secondary">Next <i data-lucide="chevron-right"></i></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Wallhaven Preview Overlay -->
+  <div id="wh-preview" class="hidden">
+    <button id="wh-preview-close"><i data-lucide="x"></i></button>
+    <button id="wh-preview-prev" class="wh-preview-nav" title="Previous (Left arrow)"><i data-lucide="chevron-left"></i></button>
+    <img id="wh-preview-img" src="" alt="" />
+    <button id="wh-preview-next" class="wh-preview-nav" title="Next (Right arrow)"><i data-lucide="chevron-right"></i></button>
+    <div id="wh-preview-info">
+      <div>
+        <span id="wh-preview-id"></span>
+        <span id="wh-preview-res"></span>
+      </div>
+      <div id="wh-preview-actions">
+        <button id="wh-preview-set" class="btn-primary"><i data-lucide="monitor"></i> Set as wallpaper</button>
+        <button id="wh-preview-dl" class="btn-secondary"><i data-lucide="download"></i> Download</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div id="toast-container"></div>
 
+  <script src="js/preload-wallpaper.js"></script>
   <script type="module" src="js/app.js"></script>
 </body>
 

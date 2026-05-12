@@ -9,10 +9,12 @@ export class ModalManager {
   /**
    * @param {import('./StorageManager.js').StorageManager} storage
    * @param {import('./DesktopRenderer.js').DesktopRenderer} renderer
+   * @param {Function} onOpenItem — callback(item) when an item is opened
    */
-  constructor(storage, renderer) {
-    this.storage  = storage;
-    this.renderer = renderer;
+  constructor(storage, renderer, onOpenItem) {
+    this.storage    = storage;
+    this.renderer   = renderer;
+    this.onOpenItem = onOpenItem;
 
     // ── State ──
     this.editingItemId   = null;
@@ -257,7 +259,7 @@ export class ModalManager {
       const el = this.renderer.createIconElement(child, true);
       el.style.position = 'static';
       // In-folder click → open
-      el.addEventListener('dblclick', () => this._openItem(child));
+      el.addEventListener('dblclick', () => this.onOpenItem(child));
       grid.appendChild(el);
     });
 
@@ -278,19 +280,6 @@ export class ModalManager {
     if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [grid] });
 
     document.getElementById('folder-overlay').classList.remove('hidden');
-  }
-
-  /**
-   * Open an item (shortcut navigates, folder opens overlay).
-   * @param {object} item
-   * @private
-   */
-  _openItem(item) {
-    if (item.type === 'folder') {
-      this.openFolderOverlay(item);
-    } else if (item.url) {
-      window.location.href = item.url;
-    }
   }
 
   // ═══════════════════════════════════════════════
@@ -357,5 +346,20 @@ export class ModalManager {
     document.querySelectorAll('.modal-close').forEach(btn => {
       btn.addEventListener('click', () => this.closeModal(btn.dataset.modal));
     });
+
+    // ── Folder update events ──
+    const refreshFolderIfOpen = (e) => {
+      if (this.openFolderId && !document.getElementById('folder-overlay').classList.contains('hidden')) {
+        const folder = this.storage.findItem(this.openFolderId);
+        if (folder) {
+          this.openFolderOverlay(folder);
+        } else {
+          // Folder itself was deleted
+          this.closeModal('folder-overlay');
+        }
+      }
+    };
+    document.addEventListener('canopy-item-deleted', refreshFolderIfOpen);
+    document.addEventListener('canopy-item-moved-desktop', refreshFolderIfOpen);
   }
 }

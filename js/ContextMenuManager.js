@@ -31,19 +31,30 @@ export class ContextMenuManager {
   show(x, y, item = null) {
     this.contextTarget = item;
 
+    // Check if item is inside a folder (i.e., not a top-level item)
+    const isTopLevel = item && this.renderer.storage.data.items.some(i => i.id === item.id);
+    const inFolder = item && !isTopLevel;
+
     // show/hide item-specific options
     const editSep = document.getElementById('ctx-edit-sep');
     const editBtn = document.getElementById('ctx-edit');
     const delBtn  = document.getElementById('ctx-delete');
+    const moveBtn = document.getElementById('ctx-move-desktop');
 
     if (item) {
       editSep.classList.remove('hidden');
       editBtn.classList.remove('hidden');
       delBtn.classList.remove('hidden');
+      if (inFolder) {
+        moveBtn.classList.remove('hidden');
+      } else {
+        moveBtn.classList.add('hidden');
+      }
     } else {
       editSep.classList.add('hidden');
       editBtn.classList.add('hidden');
       delBtn.classList.add('hidden');
+      moveBtn.classList.add('hidden');
     }
 
     this.menuEl.classList.remove('hidden');

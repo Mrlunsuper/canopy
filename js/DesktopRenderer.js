@@ -41,6 +41,8 @@ export class DesktopRenderer {
       el.style.top  = item.position.y + 'px';
       grid.appendChild(el);
     });
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
   // ═══════════════════════════════════════════════
@@ -93,9 +95,6 @@ export class DesktopRenderer {
 
     // ── Events ──
     this._initIconEvents(el, item, isInFolder);
-
-    // activate lucide icons injected dynamically
-    if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [wrap] });
 
     return el;
   }
@@ -173,9 +172,9 @@ export class DesktopRenderer {
       el.addEventListener('dragstart', e => this.dragDrop.onDragStart(e));
       el.addEventListener('dragend', e => this.dragDrop.onDragEnd(e));
 
-      // drop target (for folder-drop)
+      // drop target (for folder-drop or creating new folder)
       el.addEventListener('dragover', e => {
-        if (item.type === 'folder' && this.dragDrop.dragId !== item.id) {
+        if (this.dragDrop.dragId && this.dragDrop.dragId !== item.id) {
           e.preventDefault();
           el.classList.add('drag-over');
         }
@@ -183,9 +182,15 @@ export class DesktopRenderer {
       el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
       el.addEventListener('drop', e => {
         e.preventDefault();
+        e.stopPropagation();
         el.classList.remove('drag-over');
-        if (item.type === 'folder' && this.dragDrop.dragId && this.dragDrop.dragId !== item.id) {
-          this.dragDrop.moveItemToFolder(this.dragDrop.dragId, item.id);
+        if (this.dragDrop.dragId && this.dragDrop.dragId !== item.id) {
+          if (item.type === 'folder') {
+            this.dragDrop.moveItemToFolder(this.dragDrop.dragId, item.id);
+          } else {
+            // Dragged onto a shortcut -> create a new folder containing both
+            this.dragDrop.createFolderFromItems(this.dragDrop.dragId, item.id);
+          }
         }
       });
     }
@@ -239,7 +244,7 @@ export class DesktopRenderer {
     };
     this.storage.data.items.push(item);
     this.storage.saveData();
-    this.render();
+    this.autoArrange();
     return item;
   }
 
@@ -265,8 +270,27 @@ export class DesktopRenderer {
     };
     this.storage.data.items.push(item);
     this.storage.saveData();
-    this.render();
+    this.autoArrange();
     return item;
+  }
+
+  /**
+   * Move an item from a folder back to the desktop.
+   * @param {string} id 
+   */
+  moveItemToDesktop(id) {
+    const item = this.storage.removeItem(id);
+    if (item) {
+      // Find a free position for the item
+      item.position = this.findFreePosition();
+      this.storage.data.items.push(item);
+      this.storage.saveData();
+      this.render();
+      
+      document.dispatchEvent(new CustomEvent('canopy-item-moved-desktop', { detail: { id } }));
+
+      toast(`Moved "${item.title}" to desktop`, 'success');
+    }
   }
 
   /**
@@ -274,14 +298,20 @@ export class DesktopRenderer {
    * @param {string} id
    */
   deleteItem(id) {
-    const data = this.storage.data;
-    const idx = data.items.findIndex(i => i.id === id);
-    if (idx !== -1) {
-      const name = data.items[idx].title;
-      data.items.splice(idx, 1);
+    const removed = this.storage.removeItem(id);
+    if (removed) {
       this.storage.saveData();
       this.render();
-      toast(`Deleted "${name}"`, 'info');
+      
+      // If the removed item was a folder, we might need to close the overlay
+      // if it's currently open. We handle this in ModalManager or let user close it.
+      
+      // Also, if the item was inside a folder, we need to refresh the folder overlay.
+      // Easiest way is to dispatch a custom event or check if we are in app.js
+      // For now, just dispatch an event so ModalManager can catch it.
+      document.dispatchEvent(new CustomEvent('canopy-item-deleted', { detail: { id } }));
+
+      toast(`Deleted "${removed.title}"`, 'info');
     }
   }
 

@@ -9,6 +9,8 @@ export class WallpaperManager {
    */
   constructor(storage) {
     this.storage = storage;
+    /** @type {HTMLImageElement|null} */
+    this._preloadImg = null;
 
     /** @type {Record<string, string>} */
     this.classMap = {
@@ -40,15 +42,37 @@ export class WallpaperManager {
   apply(wp) {
     const desktop = document.getElementById('desktop');
 
+    // cancel pending image preload
+    if (this._preloadImg) {
+      this._preloadImg.onload = null;
+      this._preloadImg.onerror = null;
+      this._preloadImg = null;
+    }
+
     // remove all wallpaper classes
     desktop.classList.remove(
       ...Object.values(this.classMap).filter(Boolean),
-      'wallpaper-custom'
+      'wallpaper-custom',
+      'wallpaper-loading'
     );
 
-    if (wp.startsWith('data:') || wp.startsWith('http')) {
+    if (wp.startsWith('data:')) {
       desktop.style.backgroundImage = `url('${wp}')`;
       desktop.classList.add('wallpaper-custom');
+    } else if (wp.startsWith('http')) {
+      desktop.classList.add('wallpaper-loading');
+      desktop.style.backgroundImage = `url('${wp}')`;
+      this._preloadImg = new Image();
+      this._preloadImg.onload = () => {
+        desktop.classList.remove('wallpaper-loading');
+        desktop.classList.add('wallpaper-custom');
+        this._preloadImg = null;
+      };
+      this._preloadImg.onerror = () => {
+        desktop.classList.remove('wallpaper-loading');
+        this._preloadImg = null;
+      };
+      this._preloadImg.src = wp;
     } else {
       desktop.style.backgroundImage = '';
       if (this.classMap[wp]) {

@@ -6,13 +6,14 @@
 import { snapToGrid, toast } from './utils.js';
 import { StorageManager }     from './StorageManager.js';
 import { WallpaperManager }   from './WallpaperManager.js';
+import { WallhavenManager }   from './WallhavenManager.js';
 import { DesktopRenderer }    from './DesktopRenderer.js';
 import { DragDropManager }    from './DragDropManager.js';
 import { ContextMenuManager } from './ContextMenuManager.js';
 import { ModalManager }       from './ModalManager.js';
 import { BookmarkImporter }   from './BookmarkImporter.js';
 import { ClockWidget }        from './ClockWidget.js';
-import { SearchBar }          from './SearchBar.js';
+import { CommandPalette }     from './CommandPalette.js';
 
 class CanopyApp {
   constructor() {
@@ -38,7 +39,7 @@ class CanopyApp {
     this.contextMenu = new ContextMenuManager(this.renderer);
 
     // ── Modals ──
-    this.modals = new ModalManager(this.storage, this.renderer);
+    this.modals = new ModalManager(this.storage, this.renderer, item => this._openItem(item));
 
     // ── Bookmark importer ──
     this.bookmarks = new BookmarkImporter(
@@ -47,9 +48,12 @@ class CanopyApp {
       id => this.modals.closeModal(id)
     );
 
+    // ── Wallhaven ──
+    this.wallhaven = new WallhavenManager(this.wallpaper);
+
     // ── Widgets ──
     this.clock  = new ClockWidget();
-    this.search = new SearchBar();
+    this.commandPalette = new CommandPalette(this.wallhaven);
   }
 
   // ═══════════════════════════════════════════════
@@ -76,8 +80,18 @@ class CanopyApp {
     // Wire all events
     this._wireEvents();
 
-    // Initialize Lucide icons
-    if (typeof lucide !== 'undefined') lucide.createIcons();
+    // Initialize Lucide icons in the clock search button
+    if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [document.getElementById('center-widget')] });
+
+    // Listen for storage changes from the background context menu
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === 'local' && changes['desktop_tab_data']) {
+          this.storage.data = changes['desktop_tab_data'].newValue;
+          this.renderer.render();
+        }
+      });
+    }
   }
 
   // ═══════════════════════════════════════════════
@@ -172,7 +186,7 @@ class CanopyApp {
     // Wire sub-module events
     this.modals.wireEvents();
     this.bookmarks.wireEvents();
-    this.search.wireEvents();
+    this.commandPalette.wireEvents();
 
     // ── Desktop background click ──
     document.getElementById('desktop').addEventListener('click', e => {
@@ -224,6 +238,12 @@ class CanopyApp {
       if (item) this.renderer.deleteItem(item.id);
     });
 
+    document.getElementById('ctx-move-desktop').addEventListener('click', () => {
+      const item = this.contextMenu.contextTarget;
+      this.contextMenu.hide();
+      if (item) this.renderer.moveItemToDesktop(item.id);
+    });
+
     document.getElementById('ctx-arrange').addEventListener('click', e => {
       e.stopPropagation();
       const rect = document.getElementById('ctx-arrange').getBoundingClientRect();
@@ -245,10 +265,23 @@ class CanopyApp {
       document.getElementById('settings-panel').classList.remove('hidden');
     });
 
+    document.getElementById('ctx-refresh').addEventListener('click', () => {
+      this.contextMenu.hide();
+      const desktop = document.getElementById('desktop');
+      desktop.classList.add('refreshing');
+      this.renderer.render();
+      setTimeout(() => desktop.classList.remove('refreshing'), 400);
+    });
+
     // Hide context menu and arrange menu on click elsewhere
     document.addEventListener('click', () => {
       this.contextMenu.hide();
       this.contextMenu.hideArrangeMenu();
+    });
+
+    // ── Clock search trigger ──
+    document.getElementById('clock-search-trigger').addEventListener('click', () => {
+      this.commandPalette.show();
     });
 
     // ── Taskbar buttons ──
@@ -294,6 +327,62 @@ class CanopyApp {
       reader.readAsDataURL(file);
     });
 
+    // ── Wallhaven ──
+    document.getElementById('btn-open-wallhaven').addEventListener('click', () => {
+      this._closeSettingsPanel();
+      setTimeout(() => this.wallhaven.open(), 180);
+    });
+
+    document.getElementById('wh-modal-search-btn').addEventListener('click', () => {
+      const q = document.getElementById('wh-modal-query').value;
+      this.wallhaven.search(q);
+    });
+
+    document.getElementById('wh-modal-query').addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        const q = e.target.value;
+        this.wallhaven.search(q);
+      }
+    });
+
+    document.getElementById('wallhaven-modal').addEventListener('click', e => {
+      if (e.target.id === 'wallhaven-modal') {
+        this.wallhaven.close();
+      }
+    });
+
+    // ── Wallhaven preview ──
+    document.getElementById('wh-preview-close').addEventListener('click', () => {
+      this.wallhaven.closePreview();
+    });
+
+    document.getElementById('wh-preview').addEventListener('click', e => {
+      if (e.target.id === 'wh-preview') {
+        this.wallhaven.closePreview();
+      }
+    });
+
+    document.getElementById('wh-preview-prev').addEventListener('click', () => {
+      this.wallhaven.prevPreview();
+    });
+
+    document.getElementById('wh-preview-next').addEventListener('click', () => {
+      this.wallhaven.nextPreview();
+    });
+
+    document.getElementById('wh-preview-set').addEventListener('click', () => {
+      if (this.wallhaven.previewWp) {
+        this.wallhaven.apply(this.wallhaven.previewWp);
+        this.wallhaven.closePreview();
+      }
+    });
+
+    document.getElementById('wh-preview-dl').addEventListener('click', () => {
+      if (this.wallhaven.previewWp) {
+        this.wallhaven.download(this.wallhaven.previewWp);
+      }
+    });
+
     // ── Settings data ──
     document.getElementById('btn-export-data').addEventListener('click', () => this._exportData());
     document.getElementById('import-data-file').addEventListener('change', e => this._importDataFromFile(e.target.files[0]));
@@ -307,7 +396,12 @@ class CanopyApp {
   _wireKeyboardShortcuts() {
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') {
-        ['shortcut-modal', 'folder-modal-create', 'import-modal', 'folder-overlay'].forEach(id => {
+        // Check preview first (higher z-index)
+        if (!document.getElementById('wh-preview').classList.contains('hidden')) {
+          this.wallhaven.closePreview();
+          return;
+        }
+        ['shortcut-modal', 'folder-modal-create', 'import-modal', 'folder-overlay', 'wallhaven-modal'].forEach(id => {
           if (!document.getElementById(id).classList.contains('hidden')) {
             this.modals.closeModal(id);
           }
@@ -316,6 +410,27 @@ class CanopyApp {
         this.contextMenu.hide();
         this.contextMenu.hideArrangeMenu();
         this.renderer.clearSelection();
+        this.commandPalette.hide();
+      }
+      // Preview navigation arrows
+      if (!document.getElementById('wh-preview').classList.contains('hidden')) {
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          this.wallhaven.prevPreview();
+          return;
+        }
+        if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          this.wallhaven.nextPreview();
+          return;
+        }
+      }
+      if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const tag = document.activeElement?.tagName || '';
+        if (!['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) {
+          e.preventDefault();
+          this.commandPalette.show();
+        }
       }
       if (e.key === 'Delete' && this.renderer.selectedIconId) {
         this.renderer.deleteItem(this.renderer.selectedIconId);
