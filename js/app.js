@@ -14,6 +14,8 @@ import { ModalManager }       from './ModalManager.js';
 import { BookmarkImporter }   from './BookmarkImporter.js';
 import { ClockWidget }        from './ClockWidget.js';
 import { CommandPalette }     from './CommandPalette.js';
+import { MusicPlayer }        from './MusicPlayer.js';
+import { StickyNotesManager } from './StickyNotesManager.js';
 
 class CanopyApp {
   constructor() {
@@ -54,6 +56,12 @@ class CanopyApp {
     // ── Widgets ──
     this.clock  = new ClockWidget();
     this.commandPalette = new CommandPalette(this.wallhaven);
+
+    // ── Music Player ──
+    this.music = new MusicPlayer();
+
+    // ── Sticky Notes ──
+    this.stickyNotes = new StickyNotesManager();
   }
 
   // ═══════════════════════════════════════════════
@@ -73,6 +81,12 @@ class CanopyApp {
 
     // Start clock
     this.clock.startTicking();
+
+    // Init music player
+    this.music.init();
+
+    // Init sticky notes
+    await this.stickyNotes.init();
 
     // Initialize drop zone
     this.dragDrop.initDropZone();
@@ -219,6 +233,11 @@ class CanopyApp {
     document.getElementById('ctx-add-folder').addEventListener('click', () => {
       this.contextMenu.hide();
       this.modals.openFolderCreateModal(null, this.contextMenu.pendingPosition);
+    });
+
+    document.getElementById('ctx-add-note').addEventListener('click', () => {
+      this.contextMenu.hide();
+      this.stickyNotes.create(this.contextMenu.pendingPosition);
     });
 
     document.getElementById('ctx-edit').addEventListener('click', () => {
@@ -412,6 +431,28 @@ class CanopyApp {
         this.renderer.clearSelection();
         this.commandPalette.hide();
       }
+
+      // ── Music player media keys ──
+      if (e.code === 'MediaPlayPause') {
+        e.preventDefault();
+        this.music.toggle();
+        return;
+      }
+      if (e.code === 'MediaTrackPrevious') {
+        e.preventDefault();
+        this.music.prevTrack();
+        return;
+      }
+      if (e.code === 'MediaTrackNext') {
+        e.preventDefault();
+        this.music.nextTrack();
+        return;
+      }
+      if (e.code === 'MediaStop') {
+        e.preventDefault();
+        if (!this.music.audio.paused) this.music.toggle();
+        return;
+      }
       // Preview navigation arrows
       if (!document.getElementById('wh-preview').classList.contains('hidden')) {
         if (e.key === 'ArrowLeft') {
@@ -438,6 +479,16 @@ class CanopyApp {
       if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
         e.preventDefault();
         this.modals.openShortcutModal();
+      }
+
+      // Space: play/pause (when not in input/textarea)
+      if (e.code === 'Space' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const tag = document.activeElement?.tagName || '';
+        if (!['INPUT', 'TEXTAREA', 'SELECT'].includes(tag) &&
+            !document.activeElement?.isContentEditable) {
+          e.preventDefault();
+          this.music.toggle();
+        }
       }
     });
   }
