@@ -41,9 +41,13 @@ export class DragDropManager {
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', el.dataset.id);
 
+    const isInFolder = !!el.closest('#folder-overlay');
+
     setTimeout(() => {
       el.classList.add('dragging');
-      document.getElementById('trash-zone').classList.remove('hidden');
+      if (!isInFolder) {
+        document.getElementById('trash-zone').classList.remove('hidden');
+      }
     }, 0);
   }
 
@@ -80,7 +84,26 @@ export class DragDropManager {
       const rawY = e.clientY - rect.top  - this._offsetY;
       const snapped = snapToGrid(rawX, rawY);
 
-      this.updateItemPosition(this._dragId, snapped.x, snapped.y);
+      const parentList = this.storage.findParentList(this._dragId);
+      const isInFolder = parentList && parentList !== this.storage.data.items;
+      if (isInFolder) {
+        // Item is inside a folder — move to desktop
+        const moved = this.storage.removeItem(this._dragId);
+        if (moved) {
+          const maxX = gridEl.offsetWidth  - GRID_COL;
+          const maxY = gridEl.offsetHeight - GRID_ROW;
+          moved.position = {
+            x: Math.max(0, Math.min(snapped.x, maxX)),
+            y: Math.max(0, Math.min(snapped.y, maxY)),
+          };
+          this.storage.data.items.push(moved);
+          this.storage.saveData();
+          this.renderCallback();
+          document.dispatchEvent(new CustomEvent('canopy-item-moved-desktop', { detail: { id: moved.id } }));
+        }
+      } else {
+        this.updateItemPosition(this._dragId, snapped.x, snapped.y);
+      }
       this._dragId = null;
     });
 
@@ -147,6 +170,7 @@ export class DragDropManager {
     if (!folder || folder.type !== 'folder') return;
 
     data.items.splice(itemIdx, 1);
+    delete item.position; // strip position — item is now inside a folder
     folder.children = folder.children || [];
     folder.children.push(item);
 
@@ -191,6 +215,10 @@ export class DragDropManager {
       position: { ...targetItem.position }, // take position of the target item
       children: [targetItem, dragItem]      // target item first, then dragged item
     };
+
+    // Strip positions from children — they are now inside a folder
+    delete targetItem.position;
+    delete dragItem.position;
 
     data.items.push(newFolder);
     this.storage.saveData();

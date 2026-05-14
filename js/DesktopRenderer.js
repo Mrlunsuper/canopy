@@ -73,7 +73,7 @@ export class DesktopRenderer {
     const el = document.createElement('div');
     el.className  = 'desktop-icon';
     el.dataset.id = item.id;
-    el.draggable  = !isInFolder;
+    el.draggable  = true;
 
     // icon visual
     const wrap = document.createElement('div');
@@ -114,6 +114,7 @@ export class DesktopRenderer {
           const img = document.createElement('img');
           img.src = child.icon || getFaviconUrl(child.url) || '';
           img.alt = '';
+          img.draggable = false;
           img.onerror = () => { img.style.display = 'none'; };
           si.appendChild(img);
         } else {
@@ -139,6 +140,7 @@ export class DesktopRenderer {
   _buildShortcutVisual(item, wrap) {
     const img = document.createElement('img');
     img.className = 'icon-img';
+    img.draggable = false;
     img.alt = item.title || '';
     img.src = item.icon || getFaviconUrl(item.url) || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="%237c6af7"/><text x="32" y="44" font-size="36" text-anchor="middle">🔗</text></svg>';
     img.onerror = () => {
@@ -153,11 +155,19 @@ export class DesktopRenderer {
 
   /** @private */
   _initIconEvents(el, item, isInFolder) {
-    // Single click → open
-    el.addEventListener('click', e => {
-      e.stopPropagation();
-      this.onIconOpen(item);
-    });
+    if (isInFolder) {
+      // In-folder: double-click to open (single click is reserved for drag)
+      el.addEventListener('dblclick', e => {
+        e.stopPropagation();
+        this.onIconOpen(item);
+      });
+    } else {
+      // Desktop: single click to open
+      el.addEventListener('click', e => {
+        e.stopPropagation();
+        this.onIconOpen(item);
+      });
+    }
 
     // Right-click
     el.addEventListener('contextmenu', e => {
@@ -167,12 +177,12 @@ export class DesktopRenderer {
       this.onIconContext(e.clientX, e.clientY, item);
     });
 
-    // Drag — desktop icons only
-    if (!isInFolder) {
-      el.addEventListener('dragstart', e => this.dragDrop.onDragStart(e));
-      el.addEventListener('dragend', e => this.dragDrop.onDragEnd(e));
+    // Drag
+    el.addEventListener('dragstart', e => this.dragDrop.onDragStart(e));
+    el.addEventListener('dragend', e => this.dragDrop.onDragEnd(e));
 
-      // drop target (for folder-drop or creating new folder)
+    // Drop target — desktop icons only
+    if (!isInFolder) {
       el.addEventListener('dragover', e => {
         if (this.dragDrop.dragId && this.dragDrop.dragId !== item.id) {
           e.preventDefault();
@@ -278,15 +288,14 @@ export class DesktopRenderer {
    * Move an item from a folder back to the desktop.
    * @param {string} id 
    */
-  moveItemToDesktop(id) {
+  moveItemToDesktop(id, pos) {
     const item = this.storage.removeItem(id);
     if (item) {
-      // Find a free position for the item
-      item.position = this.findFreePosition();
+      item.position = pos || this.findFreePosition();
       this.storage.data.items.push(item);
       this.storage.saveData();
       this.render();
-      
+
       document.dispatchEvent(new CustomEvent('canopy-item-moved-desktop', { detail: { id } }));
 
       toast(`Moved "${item.title}" to desktop`, 'success');

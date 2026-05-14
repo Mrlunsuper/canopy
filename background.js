@@ -34,6 +34,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     });
     return false;
   }
+
+  if (request.type === 'music-sync') {
+    fetch(request.url)
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then(data => sendResponse({ ok: true, data }))
+      .catch(err => sendResponse({ ok: false, error: err.message }));
+    return true;
+  }
 });
 
 // ─── Create context menu on install ───────────────────────

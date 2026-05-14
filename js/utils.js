@@ -9,8 +9,11 @@
 //  CONSTANTS
 // ═══════════════════════════════════════════════
 
-export const STORAGE_KEY    = 'desktop_tab_data';
-export const WALLPAPER_KEY  = 'desktop_tab_wallpaper';
+export const STORAGE_KEY       = 'desktop_tab_data';
+export const WALLPAPER_KEY     = 'desktop_tab_wallpaper';
+export const MUSIC_CONFIG_KEY  = 'music_config';
+export const STICKY_NOTES_KEY  = 'canopy_sticky_notes';
+export const DELETED_NOTES_KEY = 'canopy_deleted_notes';
 export const GRID_COL       = 130;   // px width of each icon cell
 export const GRID_ROW       = 116;   // px height of each icon cell
 

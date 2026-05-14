@@ -16,13 +16,12 @@
 
   <!-- Desktop Area -->
   <div id="desktop">
-    <!-- Clock + Search: floating center -->
+    <!-- Clock: floating center -->
     <div id="center-widget">
       <div id="taskbar-clock">
         <div id="clock-time">00:00</div>
         <div id="clock-date">Monday, 01/01</div>
       </div>
-      <button id="clock-search-trigger" class="clock-search-btn" title="Search (/)"><i data-lucide="search"></i></button>
     </div>
 
     <!-- Floating action buttons top-right -->
@@ -31,7 +30,30 @@
       <button id="btn-settings" class="fab" title="Settings"><i data-lucide="settings"></i></button>
     </div>
 
+    <!-- Music Player -->
+    <div id="music-player" class="hidden">
+      <audio id="music-audio" preload="auto"></audio>
+      <div id="music-pill">
+        <span id="music-drag-handle" title="Drag to reposition"><i data-lucide="grip-vertical"></i></span>
+        <button id="music-shuffle" title="Shuffle off"><i data-lucide="shuffle"></i></button>
+        <button id="music-prev" title="Previous track"><i data-lucide="chevron-left"></i></button>
+        <button id="music-toggle" title="Play"><i data-lucide="play"></i></button>
+        <span id="music-track-label"></span>
+        <span id="music-time">--:-- / --:--</span>
+        <button id="music-next" title="Next track"><i data-lucide="chevron-right"></i></button>
+        <button id="music-repeat" title="Repeat off"><i data-lucide="repeat"></i></button>
+        <input type="range" id="music-volume" min="0" max="100" value="75" />
+        <button id="music-collapse" title="Collapse"><i data-lucide="chevron-down"></i></button>
+        <div id="music-progress">
+          <div id="music-progress-fill"></div>
+        </div>
+      </div>
+    </div>
+
     <div id="desktop-grid" tabindex="0"></div>
+
+    <!-- Sticky Notes -->
+    <div id="sticky-notes-layer"></div>
 
     <!-- Command Palette -->
     <div id="command-palette" class="hidden">
@@ -77,6 +99,9 @@
       </li>
       <li id="ctx-add-folder" class="ctx-item">
         <span class="ctx-icon"><i data-lucide="folder-plus"></i></span> Create Folder
+      </li>
+      <li id="ctx-add-note" class="ctx-item">
+        <span class="ctx-icon"><i data-lucide="sticky-note"></i></span> Add Sticky Note
       </li>
       <li class="ctx-separator" id="ctx-edit-sep"></li>
       <li id="ctx-edit" class="ctx-item hidden">
@@ -158,6 +183,26 @@
         <label for="import-data-file" class="settings-btn"><i data-lucide="upload"></i> Import JSON data</label>
         <input type="file" id="import-data-file" accept=".json" />
         <button id="btn-reset-data" class="settings-btn danger"><i data-lucide="trash-2"></i> Reset all data</button>
+      </section>
+
+      <section class="settings-section">
+        <h3><i data-lucide="music"></i> Music Player</h3>
+        <div id="music-r2-config">
+          <input type="url" id="music-r2-url" placeholder="R2 Bucket URL (e.g. https://pub-xxx.r2.dev)" />
+          <button id="music-sync-btn" class="settings-btn"><i data-lucide="refresh-cw"></i> Sync from R2</button>
+        </div>
+        <div id="music-track-list"></div>
+        <div id="music-add-track">
+          <input type="text" id="music-new-name" placeholder="Track name" />
+          <input type="url" id="music-new-url" placeholder="MP3 URL or relative path" />
+          <button id="music-add-btn" class="settings-btn"><i data-lucide="plus"></i> Add track</button>
+        </div>
+        <button id="music-reset-defaults" class="settings-btn">Reset to defaults</button>
+      </section>
+
+      <section class="settings-section">
+        <h3><i data-lucide="trash-2"></i> Recently Deleted Notes</h3>
+        <div id="deleted-notes-container"></div>
       </section>
 
       <section class="settings-section">

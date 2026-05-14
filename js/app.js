@@ -220,6 +220,8 @@ class CanopyApp {
         const rect = document.getElementById('desktop-grid').getBoundingClientRect();
         const snapped = snapToGrid(e.clientX - rect.left, e.clientY - rect.top);
         this.contextMenu.pendingPosition = snapped;
+        const layerRect = document.getElementById('sticky-notes-layer').getBoundingClientRect();
+        this.contextMenu.pendingNotePosition = { x: e.clientX - layerRect.left, y: e.clientY - layerRect.top };
         this.contextMenu.show(e.clientX, e.clientY, null);
       }
     });
@@ -237,7 +239,8 @@ class CanopyApp {
 
     document.getElementById('ctx-add-note').addEventListener('click', () => {
       this.contextMenu.hide();
-      this.stickyNotes.create(this.contextMenu.pendingPosition);
+      const pos = this.contextMenu.pendingNotePosition || this.contextMenu.pendingPosition;
+      this.stickyNotes.create(pos);
     });
 
     document.getElementById('ctx-edit').addEventListener('click', () => {
@@ -296,11 +299,6 @@ class CanopyApp {
     document.addEventListener('click', () => {
       this.contextMenu.hide();
       this.contextMenu.hideArrangeMenu();
-    });
-
-    // ── Clock search trigger ──
-    document.getElementById('clock-search-trigger').addEventListener('click', () => {
-      this.commandPalette.show();
     });
 
     // ── Taskbar buttons ──

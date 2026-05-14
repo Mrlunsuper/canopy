@@ -139,7 +139,7 @@ export class CommandPalette {
     body.className = 'cp-calc-body';
     body.innerHTML = `
       <div class="cp-calc-expr">${this._escapeHtml(expr)}</div>
-      <div class="cp-calc-answer">= ${result}</div>
+      <div class="cp-calc-answer">${result}</div>
     `;
 
     const copyBtn = document.createElement('button');

@@ -3,7 +3,7 @@
    Shortcut modal, folder-create modal, and folder overlay
    ============================================================ */
 
-import { uid, getFaviconUrl, toast } from './utils.js';
+import { uid, getFaviconUrl, toast, snapToGrid, GRID_COL, GRID_ROW } from './utils.js';
 
 export class ModalManager {
   /**
@@ -258,8 +258,6 @@ export class ModalManager {
     (item.children || []).forEach(child => {
       const el = this.renderer.createIconElement(child, true);
       el.style.position = 'static';
-      // In-folder click → open
-      el.addEventListener('dblclick', () => this.onOpenItem(child));
       grid.appendChild(el);
     });
 
@@ -342,6 +340,69 @@ export class ModalManager {
       if (e.target === document.getElementById('folder-overlay')) this.closeModal('folder-overlay');
     });
 
+    // Intercept drag events at document level (capture phase) to handle
+    // folder→desktop drops through the folder overlay
+    const folderModal = document.getElementById('folder-modal');
+    const folderOverlay = document.getElementById('folder-overlay');
+    const gridEl = document.getElementById('desktop-grid');
+
+    /** @returns {boolean} true if an in-folder item is being dragged */
+    const _isDraggingFromFolder = () => {
+      const id = this.renderer.dragDrop.dragId;
+      if (!id) return false;
+      // Check if item lives inside a folder (not at top-level data.items)
+      const parentList = this.storage.findParentList(id);
+      return parentList && parentList !== this.storage.data.items;
+    };
+
+    document.addEventListener('dragover', e => {
+      if (!_isDraggingFromFolder()) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+
+      // Visual feedback: dim folder overlay when cursor is outside the modal
+      const modalRect = folderModal.getBoundingClientRect();
+      const outsideModal =
+        e.clientX < modalRect.left || e.clientX > modalRect.right ||
+        e.clientY < modalRect.top  || e.clientY > modalRect.bottom;
+
+      folderOverlay.classList.toggle('drag-outside', outsideModal);
+      gridEl.classList.toggle('folder-drop-hint', outsideModal);
+    }, { capture: true });
+
+    // Clean up visual states on dragend (capture to catch all cases)
+    document.addEventListener('dragend', () => {
+      folderOverlay.classList.remove('drag-outside');
+      gridEl.classList.remove('folder-drop-hint');
+    }, { capture: true });
+
+    document.addEventListener('drop', e => {
+      // Clean up visual states immediately
+      folderOverlay.classList.remove('drag-outside');
+      gridEl.classList.remove('folder-drop-hint');
+
+      const id = this.renderer.dragDrop.dragId;
+      if (!id) return;
+
+      const parentList = this.storage.findParentList(id);
+      if (!parentList || parentList === this.storage.data.items) return;
+
+      e.preventDefault();
+
+      const rect = gridEl.getBoundingClientRect();
+      const rawX = e.clientX - rect.left;
+      const rawY = e.clientY - rect.top;
+      const snapped = snapToGrid(rawX, rawY);
+      const maxX = gridEl.offsetWidth  - GRID_COL;
+      const maxY = gridEl.offsetHeight - GRID_ROW;
+      const pos = {
+        x: Math.max(0, Math.min(snapped.x, maxX)),
+        y: Math.max(0, Math.min(snapped.y, maxY)),
+      };
+      this.renderer.moveItemToDesktop(id, pos);
+      this.renderer.dragDrop._dragId = null;
+    }, { capture: true });
+
     // ── Modal close buttons ──
     document.querySelectorAll('.modal-close').forEach(btn => {
       btn.addEventListener('click', () => this.closeModal(btn.dataset.modal));
@@ -352,7 +413,12 @@ export class ModalManager {
       if (this.openFolderId && !document.getElementById('folder-overlay').classList.contains('hidden')) {
         const folder = this.storage.findItem(this.openFolderId);
         if (folder) {
-          this.openFolderOverlay(folder);
+          // Auto-close if folder is now empty
+          if (!folder.children || folder.children.length === 0) {
+            this.closeModal('folder-overlay');
+          } else {
+            this.openFolderOverlay(folder);
+          }
         } else {
           // Folder itself was deleted
           this.closeModal('folder-overlay');

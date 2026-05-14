@@ -13,10 +13,11 @@
   "host_permissions": [
     "https://wallhaven.cc/*",
     "https://w.wallhaven.cc/*",
-    "https://th.wallhaven.cc/*"
-  ],
+      "https://th.wallhaven.cc/*",
+      "https://pub-1fcf1661114842b0b4459512cb05dd05.r2.dev/*"
+    ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; connect-src https://wallhaven.cc https://w.wallhaven.cc https://th.wallhaven.cc"
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src https://wallhaven.cc https://w.wallhaven.cc https://th.wallhaven.cc https://pub-1fcf1661114842b0b4459512cb05dd05.r2.dev; media-src *"
   },
   "background": {
     "service_worker": "background.js"
