@@ -94,7 +94,7 @@ export class DesktopRenderer {
     el.appendChild(label);
 
     // ── Events ──
-    this._initIconEvents(el, item, isInFolder);
+    this._initIconEvents(el, item, isInFolder, label);
 
     return el;
   }
@@ -154,20 +154,33 @@ export class DesktopRenderer {
   // ═══════════════════════════════════════════════
 
   /** @private */
-  _initIconEvents(el, item, isInFolder) {
+  _initIconEvents(el, item, isInFolder, label) {
     if (isInFolder) {
       // In-folder: double-click to open (single click is reserved for drag)
       el.addEventListener('dblclick', e => {
+        if (e.target.closest('.icon-label')) return; // handled by label dblclick
         e.stopPropagation();
         this.onIconOpen(item);
       });
     } else {
-      // Desktop: single click to open
+      // Desktop: single click on icon image to open, but NOT on label
       el.addEventListener('click', e => {
         e.stopPropagation();
+        // Don't navigate if clicking the label (label has its own dblclick for rename)
+        if (e.target.closest('.icon-label')) {
+          this.selectIcon(el);
+          return;
+        }
         this.onIconOpen(item);
       });
     }
+
+    // Double-click on label → inline rename
+    label.addEventListener('dblclick', e => {
+      e.stopPropagation();
+      e.preventDefault();
+      this.startRename(item.id);
+    });
 
     // Right-click
     el.addEventListener('contextmenu', e => {
@@ -226,6 +239,144 @@ export class DesktopRenderer {
   clearSelection() {
     document.querySelectorAll('.desktop-icon.selected').forEach(e => e.classList.remove('selected'));
     this.selectedIconId = null;
+  }
+
+  // ═══════════════════════════════════════════════
+  //  INLINE RENAME
+  // ═══════════════════════════════════════════════
+
+  /**
+   * Enter inline rename mode for the given item.
+   * @param {string} id
+   */
+  startRename(id) {
+    // Cancel any existing rename first
+    this._cancelActiveRename();
+
+    const item = this.storage.findItem(id);
+    if (!item) return;
+
+    // Find the DOM element
+    const el = document.querySelector(`.desktop-icon[data-id="${id}"]`);
+    if (!el) return;
+
+    this.selectIcon(el);
+
+    const label = el.querySelector('.icon-label');
+    if (!label) return;
+
+    // Store original value for cancel
+    label.dataset.originalTitle = label.textContent;
+    label.contentEditable = 'true';
+    label.classList.add('editing');
+    el.draggable = false;  // disable drag while renaming
+
+    // Remove text truncation so user can see full name
+    label.style.overflow = 'visible';
+    label.style.textOverflow = 'unset';
+    label.style.whiteSpace = 'normal';
+    label.style.wordBreak = 'break-word';
+
+    // Select all text
+    requestAnimationFrame(() => {
+      label.focus();
+      const range = document.createRange();
+      range.selectNodeContents(label);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    });
+
+    // Store handler references so we can remove them later
+    const onKeydown = e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        this._commitRename(label, item, el);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        this._cancelRename(label, el);
+      }
+      // Stop all key events from propagating while editing
+      e.stopPropagation();
+    };
+
+    const onBlur = () => {
+      // Small delay to allow click handlers to fire first
+      setTimeout(() => {
+        if (label.contentEditable === 'true') {
+          this._commitRename(label, item, el);
+        }
+      }, 100);
+    };
+
+    // Prevent click on label from bubbling (would trigger navigation)
+    const onClick = e => {
+      e.stopPropagation();
+      e.preventDefault();
+    };
+
+    label.addEventListener('keydown', onKeydown);
+    label.addEventListener('blur', onBlur);
+    label.addEventListener('click', onClick);
+
+    // Store references for cleanup
+    label._renameHandlers = { onKeydown, onBlur, onClick };
+  }
+
+  /** @private */
+  _commitRename(label, item, el) {
+    const newTitle = label.textContent.trim();
+    this._exitRenameMode(label, el);
+
+    if (newTitle && newTitle !== item.title) {
+      item.title = newTitle;
+      this.storage.saveData();
+      // Update label and tooltip
+      label.textContent = newTitle;
+      label.title = newTitle;
+      toast(`Renamed to "${newTitle}"`, 'success');
+    } else {
+      // Restore original if empty or unchanged
+      label.textContent = label.dataset.originalTitle || item.title;
+    }
+  }
+
+  /** @private */
+  _cancelRename(label, el) {
+    label.textContent = label.dataset.originalTitle || label.textContent;
+    this._exitRenameMode(label, el);
+  }
+
+  /** @private */
+  _cancelActiveRename() {
+    const editing = document.querySelector('.icon-label.editing');
+    if (editing) {
+      const el = editing.closest('.desktop-icon');
+      this._cancelRename(editing, el);
+    }
+  }
+
+  /** @private */
+  _exitRenameMode(label, el) {
+    label.contentEditable = 'false';
+    label.classList.remove('editing');
+    if (el) el.draggable = true;
+
+    // Restore text truncation
+    label.style.overflow = '';
+    label.style.textOverflow = '';
+    label.style.whiteSpace = '';
+    label.style.wordBreak = '';
+
+    delete label.dataset.originalTitle;
+
+    // Remove event listeners
+    if (label._renameHandlers) {
+      label.removeEventListener('keydown', label._renameHandlers.onKeydown);
+      label.removeEventListener('blur', label._renameHandlers.onBlur);
+      label.removeEventListener('click', label._renameHandlers.onClick);
+      delete label._renameHandlers;
+    }
   }
 
   // ═══════════════════════════════════════════════

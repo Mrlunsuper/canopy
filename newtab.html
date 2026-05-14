@@ -50,6 +50,43 @@
       </div>
     </div>
 
+    <!-- Weather Widget -->
+    <div id="weather-widget">
+      <div id="weather-pill">
+        <span id="weather-drag-handle" title="Drag to reposition"><i data-lucide="grip-vertical"></i></span>
+        <span id="weather-icon" class="weather-emoji">🌡️</span>
+        <span id="weather-temp" class="weather-temp" title="Click to toggle °C / °F">--°</span>
+        <span id="weather-desc">Loading...</span>
+        <span id="weather-details"></span>
+        <span id="weather-location"></span>
+        <button id="weather-refresh" title="Refresh weather"><i data-lucide="refresh-cw"></i></button>
+        <button id="weather-collapse" title="Collapse"><i data-lucide="chevron-down"></i></button>
+      </div>
+    </div>
+
+    <!-- Pomodoro Timer -->
+    <div id="pomodoro-player">
+      <div id="pomodoro-pill">
+        <span id="pomodoro-drag-handle" title="Drag to reposition"><i data-lucide="grip-vertical"></i></span>
+        <div id="pomodoro-ring-wrap">
+          <svg id="pomodoro-progress-ring" viewBox="0 0 40 40" width="32" height="32">
+            <circle cx="20" cy="20" r="18" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3"/>
+            <circle id="pomodoro-progress-circle" cx="20" cy="20" r="18" fill="none" stroke="var(--accent)" stroke-width="3"
+              stroke-linecap="round" transform="rotate(-90 20 20)"
+              stroke-dasharray="113.1" stroke-dashoffset="113.1"/>
+          </svg>
+          <span id="pomodoro-ring-icon"><i data-lucide="brain"></i></span>
+        </div>
+        <span id="pomodoro-mode">Focus</span>
+        <span id="pomodoro-time">25:00</span>
+        <span id="pomodoro-sessions" title="Completed sessions">#0</span>
+        <button id="pomodoro-toggle" title="Start"><i data-lucide="play"></i></button>
+        <button id="pomodoro-skip" title="Skip phase"><i data-lucide="skip-forward"></i></button>
+        <button id="pomodoro-reset" title="Reset timer"><i data-lucide="rotate-ccw"></i></button>
+        <button id="pomodoro-collapse" title="Collapse"><i data-lucide="chevron-down"></i></button>
+      </div>
+    </div>
+
     <div id="desktop-grid" tabindex="0"></div>
 
     <!-- Sticky Notes -->
@@ -198,6 +235,51 @@
           <button id="music-add-btn" class="settings-btn"><i data-lucide="plus"></i> Add track</button>
         </div>
         <button id="music-reset-defaults" class="settings-btn">Reset to defaults</button>
+      </section>
+
+      <section class="settings-section">
+        <h3><i data-lucide="timer"></i> Pomodoro Timer</h3>
+        <div id="pomodoro-settings">
+          <div class="pomodoro-setting-row">
+            <label for="pomodoro-work-min">Focus duration</label>
+            <div class="pomodoro-input-group">
+              <input type="number" id="pomodoro-work-min" min="1" max="120" value="25" />
+              <span class="pomodoro-unit">min</span>
+            </div>
+          </div>
+          <div class="pomodoro-setting-row">
+            <label for="pomodoro-short-min">Short break</label>
+            <div class="pomodoro-input-group">
+              <input type="number" id="pomodoro-short-min" min="1" max="60" value="5" />
+              <span class="pomodoro-unit">min</span>
+            </div>
+          </div>
+          <div class="pomodoro-setting-row">
+            <label for="pomodoro-long-min">Long break</label>
+            <div class="pomodoro-input-group">
+              <input type="number" id="pomodoro-long-min" min="1" max="60" value="15" />
+              <span class="pomodoro-unit">min</span>
+            </div>
+          </div>
+        </div>
+        <button id="pomodoro-reset-sessions" class="settings-btn"><i data-lucide="rotate-ccw"></i> Reset session count</button>
+      </section>
+
+      <section class="settings-section">
+        <h3><i data-lucide="cloud-sun"></i> Weather</h3>
+        <div id="weather-settings">
+          <div class="weather-setting-row">
+            <label for="weather-city-input">City</label>
+            <div class="weather-input-group">
+              <input type="text" id="weather-city-input" placeholder="Search city..." />
+              <button id="weather-city-search" class="settings-btn compact"><i data-lucide="search"></i></button>
+            </div>
+          </div>
+          <div class="weather-setting-row">
+            <label>Temperature unit</label>
+            <button id="weather-unit-toggle" class="settings-btn compact">°C</button>
+          </div>
+        </div>
       </section>
 
       <section class="settings-section">

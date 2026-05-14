@@ -304,6 +304,21 @@ textarea {
   padding: 0 0.5rem;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8), 0 0 10px rgba(0, 0, 0, 0.6);
   letter-spacing: 0.01em;
+  cursor: default;
+}
+
+.icon-label.editing {
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 2px 6px;
+  outline: none;
+  text-shadow: none;
+  cursor: text;
+  min-width: 40px;
+  max-width: 160px;
+  box-shadow: 0 0 0 2px var(--accent-glow);
+  animation: fadeIn 0.15s ease;
 }
 
 /* Folder icon stack effect */
@@ -1088,6 +1103,387 @@ textarea {
 
 #music-r2-url::placeholder {
   color: var(--text-muted);
+}
+
+/* ─── Pomodoro Timer (floating pill, matches music player) ─── */
+#pomodoro-player {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  z-index: 25;
+  user-select: none;
+}
+
+#pomodoro-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 48px;
+  padding: 6px 12px;
+  border-radius: 24px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+  transition: border-color 0.3s, box-shadow 0.3s, gap 0.35s ease, padding 0.35s ease;
+}
+
+#pomodoro-pill:hover {
+  background: rgba(0, 0, 0, 0.5);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ── Running state glow ── */
+#pomodoro-player.running #pomodoro-pill {
+  border-color: var(--accent);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2), 0 0 6px rgba(124, 106, 247, 0.15);
+}
+
+#pomodoro-player.running.phase-break #pomodoro-pill {
+  border-color: #34d399;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2), 0 0 6px rgba(52, 211, 153, 0.15);
+}
+
+#pomodoro-player.running.phase-long #pomodoro-pill {
+  border-color: #fbbf24;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2), 0 0 6px rgba(251, 191, 36, 0.15);
+}
+
+/* ── Drag handle ── */
+#pomodoro-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.2);
+  padding: 2px;
+  margin-right: 1px;
+  cursor: grab;
+  flex-shrink: 0;
+  transition: color 0.2s;
+}
+
+#pomodoro-pill:hover #pomodoro-drag-handle {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+#pomodoro-drag-handle:active {
+  cursor: grabbing;
+}
+
+#pomodoro-drag-handle svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+}
+
+/* ── Progress ring ── */
+#pomodoro-ring-wrap {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+#pomodoro-progress-ring {
+  display: block;
+}
+
+#pomodoro-progress-circle {
+  transition: stroke-dashoffset 0.4s ease, stroke 0.3s;
+}
+
+#pomodoro-player.phase-break #pomodoro-progress-circle {
+  stroke: #34d399;
+}
+
+#pomodoro-player.phase-long #pomodoro-progress-circle {
+  stroke: #fbbf24;
+}
+
+#pomodoro-ring-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+#pomodoro-ring-icon svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+}
+
+#pomodoro-player.running #pomodoro-ring-icon {
+  color: var(--accent);
+}
+
+#pomodoro-player.running.phase-break #pomodoro-ring-icon {
+  color: #34d399;
+}
+
+#pomodoro-player.running.phase-long #pomodoro-ring-icon {
+  color: #fbbf24;
+}
+
+/* ── Mode label ── */
+#pomodoro-mode {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+
+#pomodoro-player.phase-break #pomodoro-mode {
+  color: #34d399;
+}
+
+#pomodoro-player.phase-long #pomodoro-mode {
+  color: #fbbf24;
+}
+
+/* ── Time display ── */
+#pomodoro-time {
+  font-size: 18px;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.85);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+
+/* ── Session counter ── */
+#pomodoro-sessions {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.3);
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Control buttons ── */
+#pomodoro-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s, transform 0.15s;
+}
+
+#pomodoro-toggle:hover {
+  background: var(--accent-hover);
+  transform: scale(1.08);
+}
+
+#pomodoro-player.phase-break #pomodoro-toggle {
+  background: #34d399;
+}
+
+#pomodoro-player.phase-break #pomodoro-toggle:hover {
+  background: #6ee7b7;
+}
+
+#pomodoro-player.phase-long #pomodoro-toggle {
+  background: #fbbf24;
+}
+
+#pomodoro-player.phase-long #pomodoro-toggle:hover {
+  background: #fcd34d;
+}
+
+#pomodoro-toggle svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+}
+
+#pomodoro-skip,
+#pomodoro-reset {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  transition: color 0.15s, background 0.15s;
+}
+
+#pomodoro-skip svg,
+#pomodoro-reset svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+}
+
+#pomodoro-skip:hover,
+#pomodoro-reset:hover {
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Collapse button ── */
+#pomodoro-collapse {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  transition: color 0.15s, transform 0.2s;
+  margin-left: 2px;
+}
+
+#pomodoro-collapse:hover {
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+#pomodoro-collapse svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  transition: transform 0.25s;
+}
+
+/* ── Collapsible items transition ── */
+#pomodoro-mode,
+#pomodoro-time,
+#pomodoro-sessions,
+#pomodoro-skip,
+#pomodoro-reset {
+  transition:
+    opacity 0.25s ease,
+    max-width 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    margin 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 300px;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ── Collapsed state ── */
+#pomodoro-player.collapsed #pomodoro-pill {
+  padding: 6px 8px;
+  gap: 4px;
+}
+
+#pomodoro-player.collapsed #pomodoro-mode,
+#pomodoro-player.collapsed #pomodoro-sessions,
+#pomodoro-player.collapsed #pomodoro-skip,
+#pomodoro-player.collapsed #pomodoro-reset {
+  opacity: 0;
+  max-width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  margin-left: 0;
+  margin-right: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+#pomodoro-player.collapsed #pomodoro-collapse {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+#pomodoro-player.collapsed #pomodoro-collapse svg {
+  transform: rotate(180deg);
+}
+
+/* ── Running pulse animation on ring ── */
+@keyframes pomodoroPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+#pomodoro-player.running #pomodoro-ring-wrap {
+  animation: pomodoroPulse 2s ease-in-out infinite;
+}
+
+/* ─── Pomodoro Settings ─── */
+#pomodoro-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.pomodoro-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.pomodoro-setting-row label {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  font-weight: 450;
+}
+
+.pomodoro-input-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pomodoro-input-group input {
+  width: 56px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  color: var(--text-primary);
+  font-size: 13px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  transition: border-color var(--transition);
+  -moz-appearance: textfield;
+}
+
+.pomodoro-input-group input::-webkit-inner-spin-button,
+.pomodoro-input-group input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.pomodoro-input-group input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+  outline: none;
+}
+
+.pomodoro-unit {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 400;
 }
 
 /* ─── Folder Overlay ─── */
@@ -2911,4 +3307,246 @@ input[type="file"] {
 .settings-info.dim {
   opacity: 0.5;
   font-size: 12px;
+}
+
+/* ─── Weather Widget ─── */
+#weather-widget {
+  position: absolute;
+  top: 80px;
+  right: 20px;
+  z-index: 25;
+  user-select: none;
+}
+
+#weather-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 48px;
+  padding: 6px 12px;
+  border-radius: 24px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+  transition: border-color 0.3s, box-shadow 0.3s, gap 0.35s ease, padding 0.35s ease;
+}
+
+#weather-pill:hover {
+  background: rgba(0, 0, 0, 0.5);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+#weather-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.2);
+  padding: 2px;
+  margin-right: 1px;
+  cursor: grab;
+  flex-shrink: 0;
+  transition: color 0.2s;
+}
+
+#weather-pill:hover #weather-drag-handle {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+#weather-drag-handle:active {
+  cursor: grabbing;
+}
+
+#weather-drag-handle svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+}
+
+#weather-icon {
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+#weather-temp {
+  font-size: 18px;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.95);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  padding: 0 2px;
+  transition: color 0.2s;
+}
+
+#weather-temp:hover {
+  color: var(--accent);
+}
+
+#weather-desc {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  padding: 0 4px;
+  text-transform: capitalize;
+}
+
+#weather-details {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.weather-detail {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.weather-detail svg {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+}
+
+#weather-location {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.4);
+  padding: 0 4px;
+}
+
+#weather-refresh, #weather-collapse {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  transition: color 0.15s, transform 0.2s, background 0.15s;
+}
+
+#weather-refresh:hover, #weather-collapse:hover {
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+#weather-refresh svg, #weather-collapse svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  transition: transform 0.25s;
+}
+
+#weather-refresh.spinning svg {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Collapsed state transitions */
+#weather-desc, #weather-details, #weather-location {
+  transition:
+    opacity 0.25s ease,
+    max-width 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    margin 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    border 0.35s ease;
+  max-width: 300px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+#weather-widget.collapsed #weather-pill {
+  padding: 6px 8px;
+  gap: 4px;
+}
+
+#weather-widget.collapsed #weather-desc,
+#weather-widget.collapsed #weather-details,
+#weather-widget.collapsed #weather-location {
+  opacity: 0;
+  max-width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  margin-left: 0;
+  margin-right: 0;
+  border-color: transparent;
+  pointer-events: none;
+}
+
+#weather-widget.collapsed #weather-collapse {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+#weather-widget.collapsed #weather-collapse svg {
+  transform: rotate(180deg);
+}
+
+#weather-widget.loading #weather-icon {
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Settings */
+#weather-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.weather-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.weather-setting-row label {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  font-weight: 450;
+}
+
+.weather-input-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.weather-input-group input {
+  width: 140px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  color: var(--text-primary);
+  font-size: 13px;
+  transition: border-color var(--transition);
+}
+
+.weather-input-group input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+  outline: none;
 }

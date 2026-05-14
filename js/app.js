@@ -15,7 +15,9 @@ import { BookmarkImporter }   from './BookmarkImporter.js';
 import { ClockWidget }        from './ClockWidget.js';
 import { CommandPalette }     from './CommandPalette.js';
 import { MusicPlayer }        from './MusicPlayer.js';
+import { PomodoroTimer }      from './PomodoroTimer.js';
 import { StickyNotesManager } from './StickyNotesManager.js';
+import { WeatherWidget }      from './WeatherWidget.js';
 
 class CanopyApp {
   constructor() {
@@ -60,6 +62,12 @@ class CanopyApp {
     // ── Music Player ──
     this.music = new MusicPlayer();
 
+    // ── Pomodoro Timer ──
+    this.pomodoro = new PomodoroTimer();
+
+    // ── Weather Widget ──
+    this.weather = new WeatherWidget();
+
     // ── Sticky Notes ──
     this.stickyNotes = new StickyNotesManager();
   }
@@ -84,6 +92,12 @@ class CanopyApp {
 
     // Init music player
     this.music.init();
+
+    // Init pomodoro timer
+    this.pomodoro.init();
+
+    // Init weather widget
+    this.weather.init();
 
     // Init sticky notes
     await this.stickyNotes.init();
@@ -473,6 +487,12 @@ class CanopyApp {
       }
       if (e.key === 'Delete' && this.renderer.selectedIconId) {
         this.renderer.deleteItem(this.renderer.selectedIconId);
+      }
+      // F2: inline rename selected icon
+      if (e.key === 'F2' && this.renderer.selectedIconId) {
+        e.preventDefault();
+        this.renderer.startRename(this.renderer.selectedIconId);
+        return;
       }
       if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
         e.preventDefault();

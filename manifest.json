@@ -8,16 +8,19 @@
     "favicon",
     "contextMenus",
     "tabs",
-    "downloads"
+    "downloads",
+    "geolocation"
   ],
   "host_permissions": [
     "https://wallhaven.cc/*",
     "https://w.wallhaven.cc/*",
-      "https://th.wallhaven.cc/*",
-      "https://pub-1fcf1661114842b0b4459512cb05dd05.r2.dev/*"
-    ],
+    "https://th.wallhaven.cc/*",
+    "https://pub-1fcf1661114842b0b4459512cb05dd05.r2.dev/*",
+    "https://api.open-meteo.com/*",
+    "https://geocoding-api.open-meteo.com/*"
+  ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; connect-src https://wallhaven.cc https://w.wallhaven.cc https://th.wallhaven.cc https://pub-1fcf1661114842b0b4459512cb05dd05.r2.dev; media-src *"
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src https://wallhaven.cc https://w.wallhaven.cc https://th.wallhaven.cc https://pub-1fcf1661114842b0b4459512cb05dd05.r2.dev https://api.open-meteo.com https://geocoding-api.open-meteo.com; media-src *"
   },
   "background": {
     "service_worker": "background.js"
