@@ -113,10 +113,18 @@ export class CommandPalette {
 
     const el = document.createElement('div');
     el.className = 'cp-result-item';
-    el.innerHTML = `
-      <span class="cp-result-icon"><i data-lucide="${iconName}" style="width:16px;height:16px"></i></span>
-      <span class="cp-result-label">${this._escapeHtml(text)}</span>
-    `;
+
+    const icon = document.createElement('span');
+    icon.className = 'cp-result-icon';
+    const glyph = document.createElement('i');
+    glyph.dataset.lucide = iconName;
+    icon.appendChild(glyph);
+
+    const label = document.createElement('span');
+    label.className = 'cp-result-label';
+    label.textContent = text;
+
+    el.append(icon, label);
     this.resultList.appendChild(el);
     if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [el] });
   }
@@ -133,7 +141,9 @@ export class CommandPalette {
 
     const icon = document.createElement('span');
     icon.className = 'cp-result-icon';
-    icon.innerHTML = '<i data-lucide="equal" style="width:16px;height:16px"></i>';
+    const equalIcon = document.createElement('i');
+    equalIcon.dataset.lucide = 'equal';
+    icon.appendChild(equalIcon);
 
     const body = document.createElement('div');
     body.className = 'cp-calc-body';
@@ -145,7 +155,9 @@ export class CommandPalette {
     const copyBtn = document.createElement('button');
     copyBtn.className = 'cp-copy-btn';
     copyBtn.title = 'Copy result';
-    copyBtn.innerHTML = '<i data-lucide="copy" style="width:14px;height:14px"></i>';
+    const copyIcon = document.createElement('i');
+    copyIcon.dataset.lucide = 'copy';
+    copyBtn.appendChild(copyIcon);
     copyBtn.addEventListener('click', e => {
       e.stopPropagation();
       navigator.clipboard.writeText(String(result)).catch(() => {});

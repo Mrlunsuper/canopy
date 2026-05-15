@@ -727,8 +727,8 @@ export class MusicPlayer {
         response => {
           if (chrome.runtime.lastError) {
             reject(new Error(chrome.runtime.lastError.message));
-          } else if (!response.ok) {
-            reject(new Error(response.error));
+          } else if (!response?.ok) {
+            reject(new Error(response?.error || 'No response from background worker'));
           } else {
             resolve(response.data);
           }

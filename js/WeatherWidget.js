@@ -251,10 +251,38 @@ export class WeatherWidget {
     return `${Math.round(celsius)}°C`;
   }
 
+  _applyWeatherMood(data) {
+    this.player.classList.remove(
+      'weather-day',
+      'weather-night',
+      'weather-clear',
+      'weather-cloud',
+      'weather-rain',
+      'weather-storm',
+      'weather-snow',
+      'weather-fog'
+    );
+
+    if (!data) return;
+
+    const code = Number(data.weatherCode);
+    const timeClass = Number(data.isDay) === 1 ? 'weather-day' : 'weather-night';
+    let moodClass = 'weather-cloud';
+
+    if (code === 0 || code === 1) moodClass = 'weather-clear';
+    else if (code === 45 || code === 48) moodClass = 'weather-fog';
+    else if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) moodClass = 'weather-rain';
+    else if ((code >= 71 && code <= 77) || code === 85 || code === 86) moodClass = 'weather-snow';
+    else if (code >= 95) moodClass = 'weather-storm';
+
+    this.player.classList.add(timeClass, moodClass);
+  }
+
   _render() {
     const d = this.config.lastData;
 
     if (d) {
+      this._applyWeatherMood(d);
       const info = this._getWeatherInfo(d.weatherCode);
       this.iconEl.textContent = info.icon;
       this.tempEl.textContent = this._formatTemp(d.temperature);
@@ -279,6 +307,7 @@ export class WeatherWidget {
       this.locationEl.textContent = this.config.cityName || '';
       this.player.classList.remove('loading');
     } else {
+      this._applyWeatherMood(null);
       this.iconEl.textContent = '🌡️';
       this.tempEl.textContent = '--°';
       this.descEl.textContent = 'Loading...';
