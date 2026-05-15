@@ -182,8 +182,8 @@ class CanopyApp {
     const layoutLabel = nextLayout === 'card' ? 'Card' : 'Compact';
     const desktop = document.getElementById('desktop');
     if (desktop) {
-      desktop.classList.toggle('widget-layout-card', nextLayout === 'card');
-      desktop.classList.toggle('widget-layout-compact', nextLayout === 'compact');
+      desktop.classList.toggle('widget-layout-vertical', nextLayout === 'card');
+      desktop.classList.toggle('widget-layout-horizontal', nextLayout === 'compact');
     }
 
     document.querySelectorAll('.widget-layout-option').forEach(btn => {
