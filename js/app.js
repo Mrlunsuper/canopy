@@ -19,6 +19,8 @@ import { PomodoroTimer }      from './PomodoroTimer.js';
 import { StickyNotesManager } from './StickyNotesManager.js';
 import { WeatherWidget }      from './WeatherWidget.js';
 
+const WIDGET_LAYOUT_KEY = 'canopy_widget_layout';
+
 class CanopyApp {
   constructor() {
     // ── Data layer ──
@@ -87,6 +89,9 @@ class CanopyApp {
     // Render desktop
     this.renderer.render();
 
+    // Apply saved widget layout before widgets paint
+    this._applyWidgetLayout(this._loadWidgetLayout(), false);
+
     // Start clock
     this.clock.startTicking();
 
@@ -150,6 +155,43 @@ class CanopyApp {
   // ═══════════════════════════════════════════════
   //  SETTINGS (Export / Import / Reset)
   // ═══════════════════════════════════════════════
+
+
+  /** @private */
+  _loadWidgetLayout() {
+    try {
+      const saved = localStorage.getItem(WIDGET_LAYOUT_KEY);
+      return saved === 'vertical' ? 'vertical' : 'horizontal';
+    } catch {
+      return 'horizontal';
+    }
+  }
+
+  /**
+   * Apply the widget control layout globally.
+   * @param {'horizontal'|'vertical'} layout
+   * @param {boolean} persist
+   * @private
+   */
+  _applyWidgetLayout(layout, persist = true) {
+    const nextLayout = layout === 'vertical' ? 'vertical' : 'horizontal';
+    const desktop = document.getElementById('desktop');
+    if (desktop) {
+      desktop.classList.toggle('widget-layout-vertical', nextLayout === 'vertical');
+      desktop.classList.toggle('widget-layout-horizontal', nextLayout === 'horizontal');
+    }
+
+    document.querySelectorAll('.widget-layout-option').forEach(btn => {
+      const active = btn.dataset.widgetLayout === nextLayout;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', String(active));
+    });
+
+    if (persist) {
+      try { localStorage.setItem(WIDGET_LAYOUT_KEY, nextLayout); } catch {}
+      toast(`Widget layout: ${nextLayout}`, 'success');
+    }
+  }
 
   /** @private */
   _exportData() {
@@ -413,6 +455,12 @@ class CanopyApp {
         this.wallhaven.download(this.wallhaven.previewWp);
       }
     });
+
+    // ── Widget layout ──
+    document.querySelectorAll('.widget-layout-option').forEach(btn => {
+      btn.addEventListener('click', () => this._applyWidgetLayout(btn.dataset.widgetLayout));
+    });
+    this._applyWidgetLayout(this._loadWidgetLayout(), false);
 
     // ── Settings data ──
     document.getElementById('btn-export-data').addEventListener('click', () => this._exportData());
