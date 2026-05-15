@@ -141,9 +141,21 @@ export class StickyNotesManager {
     const container = document.getElementById('toast-container');
     const el = document.createElement('div');
     el.className = 'toast undo';
-    el.innerHTML = `Deleted <strong>${note.title || 'Sticky Note'}</strong> <button class="toast-undo">Undo</button>`;
+
+    el.append('Deleted ');
+    const title = document.createElement('strong');
+    title.textContent = note.title || 'Sticky Note';
+    el.appendChild(title);
+    el.append(' ');
+
+    const undoBtn = document.createElement('button');
+    undoBtn.className = 'toast-undo';
+    undoBtn.type = 'button';
+    undoBtn.textContent = 'Undo';
+    el.appendChild(undoBtn);
+
     container.appendChild(el);
-    el.querySelector('.toast-undo').addEventListener('click', () => {
+    undoBtn.addEventListener('click', () => {
       const dIdx = this.deletedNotes.findIndex(d => d.note.id === note.id);
       if (dIdx !== -1) {
         this.restoreDeleted(dIdx);

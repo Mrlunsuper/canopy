@@ -93,8 +93,8 @@ export class WallhavenManager {
         response => {
           if (chrome.runtime.lastError) {
             reject(new Error(chrome.runtime.lastError.message));
-          } else if (!response.ok) {
-            reject(new Error(response.error));
+          } else if (!response?.ok) {
+            reject(new Error(response?.error || 'No response from background worker'));
           } else {
             resolve(response.data);
           }
@@ -118,8 +118,13 @@ export class WallhavenManager {
         type: 'wallhaven-download',
         url,
         filename
+      }, response => {
+        if (chrome.runtime.lastError || !response?.ok) {
+          toast(`Download failed: ${chrome.runtime.lastError?.message || response?.error || 'Unknown error'}`, 'error');
+          return;
+        }
+        toast(`Downloading ${filename}...`, 'success');
       });
-      toast(`Downloading ${filename}...`, 'success');
     } else {
       const a = document.createElement('a');
       a.href = url;
@@ -211,23 +216,43 @@ export class WallhavenManager {
     for (const wp of this.results) {
       const card = document.createElement('div');
       card.className = 'wh-modal-card';
-      card.innerHTML = `
-        <img src="${wp.thumbs.small}" alt="${wp.id}" loading="lazy" />
-        <div class="wh-modal-actions">
-          <button class="wh-action-btn wh-action-set" title="Set as wallpaper"><i data-lucide="monitor"></i></button>
-          <button class="wh-action-btn wh-action-dl" title="Download"><i data-lucide="download"></i></button>
-        </div>
-        <div class="wh-modal-info">
-          <span class="wh-modal-size">${wp.resolution || ''}</span>
-        </div>
-      `;
 
-      card.querySelector('.wh-action-set').addEventListener('click', e => {
+      const img = document.createElement('img');
+      img.src = wp.thumbs?.small || '';
+      img.alt = wp.id || 'Wallpaper preview';
+      img.loading = 'lazy';
+
+      const actions = document.createElement('div');
+      actions.className = 'wh-modal-actions';
+
+      const setBtn = document.createElement('button');
+      setBtn.className = 'wh-action-btn wh-action-set';
+      setBtn.title = 'Set as wallpaper';
+      setBtn.appendChild(this._icon('monitor'));
+
+      const downloadBtn = document.createElement('button');
+      downloadBtn.className = 'wh-action-btn wh-action-dl';
+      downloadBtn.title = 'Download';
+      downloadBtn.appendChild(this._icon('download'));
+
+      actions.append(setBtn, downloadBtn);
+
+      const info = document.createElement('div');
+      info.className = 'wh-modal-info';
+
+      const size = document.createElement('span');
+      size.className = 'wh-modal-size';
+      size.textContent = wp.resolution || '';
+      info.appendChild(size);
+
+      card.append(img, actions, info);
+
+      setBtn.addEventListener('click', e => {
         e.stopPropagation();
         this.apply(wp);
       });
 
-      card.querySelector('.wh-action-dl').addEventListener('click', e => {
+      downloadBtn.addEventListener('click', e => {
         e.stopPropagation();
         this.download(wp);
       });
@@ -240,6 +265,12 @@ export class WallhavenManager {
     }
 
     if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [container] });
+  }
+
+  _icon(name) {
+    const icon = document.createElement('i');
+    icon.dataset.lucide = name;
+    return icon;
   }
 
   _renderPagination() {

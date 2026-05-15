@@ -85,7 +85,11 @@ export class ModalManager {
     img.src = src;
     img.alt = 'icon preview';
     img.onerror = () => {
-      preview.innerHTML = '<span style="color:var(--text-muted);font-size:12px">Failed to load icon</span>';
+      preview.innerHTML = '';
+      const error = document.createElement('span');
+      error.className = 'icon-preview-error';
+      error.textContent = 'Failed to load icon';
+      preview.appendChild(error);
     };
     preview.appendChild(img);
   }
@@ -244,7 +248,7 @@ export class ModalManager {
     // build title
     const titleIcon = document.createElement('i');
     titleIcon.dataset.lucide = iconName;
-    titleIcon.style.cssText  = 'width:16px;height:16px;vertical-align:middle;margin-right:6px';
+    titleIcon.className = 'folder-title-icon';
     const titleEl = document.getElementById('folder-modal-title');
     titleEl.innerHTML = '';
     titleEl.appendChild(titleIcon);
@@ -265,11 +269,18 @@ export class ModalManager {
     const addBtn = document.createElement('div');
     addBtn.className = 'desktop-icon add-in-folder';
     addBtn.style.position = 'static';
-    addBtn.innerHTML = `
-      <div class="icon-img-wrap" style="opacity:0.4">
-        <i data-lucide="plus" style="width:38px;height:38px"></i>
-      </div>
-      <span class="icon-label" style="opacity:0.4">Add</span>`;
+    const addIconWrap = document.createElement('div');
+    addIconWrap.className = 'icon-img-wrap';
+    const addIcon = document.createElement('i');
+    addIcon.dataset.lucide = 'plus';
+    addIcon.className = 'add-in-folder-icon';
+    addIconWrap.appendChild(addIcon);
+
+    const addLabel = document.createElement('span');
+    addLabel.className = 'icon-label';
+    addLabel.textContent = 'Add';
+
+    addBtn.append(addIconWrap, addLabel);
     addBtn.addEventListener('click', () => {
       this.closeModal('folder-overlay');
       this.openShortcutModalForFolder(item.id);
