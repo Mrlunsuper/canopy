@@ -32,16 +32,22 @@
     <div id="music-player" class="hidden">
       <audio id="music-audio" preload="auto"></audio>
       <div id="music-pill">
-        <span id="music-drag-handle" title="Drag to reposition"><i data-lucide="grip-vertical"></i></span>
-        <button id="music-shuffle" title="Shuffle off"><i data-lucide="shuffle"></i></button>
-        <button id="music-prev" title="Previous track"><i data-lucide="chevron-left"></i></button>
-        <button id="music-toggle" title="Play"><i data-lucide="play"></i></button>
-        <span id="music-track-label"></span>
-        <span id="music-time">--:-- / --:--</span>
-        <button id="music-next" title="Next track"><i data-lucide="chevron-right"></i></button>
-        <button id="music-repeat" title="Repeat off"><i data-lucide="repeat"></i></button>
-        <input type="range" id="music-volume" min="0" max="100" value="75" />
-        <button id="music-collapse" title="Collapse"><i data-lucide="chevron-down"></i></button>
+        <div class="widget-header">
+          <span id="music-drag-handle" title="Drag to reposition"><i data-lucide="grip-vertical"></i></span>
+          <span id="music-track-label"></span>
+        </div>
+        <div class="widget-controls">
+          <button id="music-shuffle" title="Shuffle off"><i data-lucide="shuffle"></i></button>
+          <button id="music-prev" title="Previous track"><i data-lucide="chevron-left"></i></button>
+          <button id="music-toggle" title="Play"><i data-lucide="play"></i></button>
+          <button id="music-next" title="Next track"><i data-lucide="chevron-right"></i></button>
+          <button id="music-repeat" title="Repeat off"><i data-lucide="repeat"></i></button>
+        </div>
+        <div class="widget-meta">
+          <span id="music-time">--:-- / --:--</span>
+          <input type="range" id="music-volume" min="0" max="100" value="75" />
+          <button id="music-collapse" title="Collapse"><i data-lucide="chevron-down"></i></button>
+        </div>
         <div id="music-progress">
           <div id="music-progress-fill"></div>
         </div>
@@ -51,37 +57,47 @@
     <!-- Weather Widget -->
     <div id="weather-widget">
       <div id="weather-pill">
-        <span id="weather-drag-handle" title="Drag to reposition"><i data-lucide="grip-vertical"></i></span>
-        <span id="weather-icon" class="weather-emoji">🌡️</span>
-        <span id="weather-temp" class="weather-temp" title="Click to toggle °C / °F">--°</span>
-        <span id="weather-desc">Loading...</span>
-        <span id="weather-details"></span>
-        <span id="weather-location"></span>
-        <button id="weather-refresh" title="Refresh weather"><i data-lucide="refresh-cw"></i></button>
-        <button id="weather-collapse" title="Collapse"><i data-lucide="chevron-down"></i></button>
+        <div class="widget-header">
+          <span id="weather-drag-handle" title="Drag to reposition"><i data-lucide="grip-vertical"></i></span>
+          <span id="weather-icon" class="weather-emoji">🌡️</span>
+          <span id="weather-temp" class="weather-temp" title="Click to toggle °C / °F">--°</span>
+          <span id="weather-location"></span>
+        </div>
+        <div class="widget-body">
+          <span id="weather-desc">Loading...</span>
+          <span id="weather-details"></span>
+        </div>
+        <div class="widget-actions">
+          <button id="weather-refresh" title="Refresh weather"><i data-lucide="refresh-cw"></i></button>
+          <button id="weather-collapse" title="Collapse"><i data-lucide="chevron-down"></i></button>
+        </div>
       </div>
     </div>
 
     <!-- Pomodoro Timer -->
     <div id="pomodoro-player">
       <div id="pomodoro-pill">
-        <span id="pomodoro-drag-handle" title="Drag to reposition"><i data-lucide="grip-vertical"></i></span>
-        <div id="pomodoro-ring-wrap">
-          <svg id="pomodoro-progress-ring" viewBox="0 0 40 40" width="32" height="32">
-            <circle cx="20" cy="20" r="18" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3"/>
-            <circle id="pomodoro-progress-circle" cx="20" cy="20" r="18" fill="none" stroke="var(--accent)" stroke-width="3"
-              stroke-linecap="round" transform="rotate(-90 20 20)"
-              stroke-dasharray="113.1" stroke-dashoffset="113.1"/>
-          </svg>
-          <span id="pomodoro-ring-icon"><i data-lucide="brain"></i></span>
+        <div class="widget-header">
+          <span id="pomodoro-drag-handle" title="Drag to reposition"><i data-lucide="grip-vertical"></i></span>
+          <div id="pomodoro-ring-wrap">
+            <svg id="pomodoro-progress-ring" viewBox="0 0 40 40" width="32" height="32">
+              <circle cx="20" cy="20" r="18" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3"/>
+              <circle id="pomodoro-progress-circle" cx="20" cy="20" r="18" fill="none" stroke="var(--accent)" stroke-width="3"
+                stroke-linecap="round" transform="rotate(-90 20 20)"
+                stroke-dasharray="113.1" stroke-dashoffset="113.1"/>
+            </svg>
+            <span id="pomodoro-ring-icon"><i data-lucide="brain"></i></span>
+          </div>
+          <span id="pomodoro-mode">Focus</span>
+          <span id="pomodoro-time">25:00</span>
+          <span id="pomodoro-sessions" title="Completed sessions">#0</span>
         </div>
-        <span id="pomodoro-mode">Focus</span>
-        <span id="pomodoro-time">25:00</span>
-        <span id="pomodoro-sessions" title="Completed sessions">#0</span>
-        <button id="pomodoro-toggle" title="Start"><i data-lucide="play"></i></button>
-        <button id="pomodoro-skip" title="Skip phase"><i data-lucide="skip-forward"></i></button>
-        <button id="pomodoro-reset" title="Reset timer"><i data-lucide="rotate-ccw"></i></button>
-        <button id="pomodoro-collapse" title="Collapse"><i data-lucide="chevron-down"></i></button>
+        <div class="widget-actions">
+          <button id="pomodoro-toggle" title="Start"><i data-lucide="play"></i></button>
+          <button id="pomodoro-skip" title="Skip phase"><i data-lucide="skip-forward"></i></button>
+          <button id="pomodoro-reset" title="Reset timer"><i data-lucide="rotate-ccw"></i></button>
+          <button id="pomodoro-collapse" title="Collapse"><i data-lucide="chevron-down"></i></button>
+        </div>
       </div>
     </div>
 
