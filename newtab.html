@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Canopy</title>
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="widget-themes.css" />
   <script src="lucide.min.js"></script>
 </head>
 
@@ -217,6 +218,21 @@
         <label for="import-data-file" class="settings-btn"><i data-lucide="upload"></i> Import JSON data</label>
         <input type="file" id="import-data-file" accept=".json" />
         <button id="btn-reset-data" class="settings-btn danger"><i data-lucide="trash-2"></i> Reset all data</button>
+      </section>
+
+      <section class="settings-section">
+        <h3><i data-lucide="layout-dashboard"></i> Widgets</h3>
+        <div id="widget-layout-settings">
+          <span class="settings-info">Choose how widget controls are arranged.</span>
+          <div class="widget-layout-toggle" role="group" aria-label="Widget layout">
+            <button class="settings-btn compact widget-layout-option" data-widget-layout="horizontal" type="button">
+              <i data-lucide="panel-top"></i> Horizontal
+            </button>
+            <button class="settings-btn compact widget-layout-option" data-widget-layout="vertical" type="button">
+              <i data-lucide="panel-left"></i> Vertical
+            </button>
+          </div>
+        </div>
       </section>
 
       <section class="settings-section">

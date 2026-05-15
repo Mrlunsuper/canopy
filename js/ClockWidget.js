@@ -92,8 +92,24 @@ export class ClockWidget {
 
   update() {
     const now = new Date();
-    this.timeEl.textContent = `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
+    const hour = now.getHours();
+    this.timeEl.textContent = `${pad2(hour)}:${pad2(now.getMinutes())}`;
     this.dateEl.textContent = `${DAYS[now.getDay()]}, ${pad2(now.getDate())}/${MONTHS[now.getMonth()]}`;
+    this._applyTimeMood(hour);
+  }
+
+  _applyTimeMood(hour) {
+    this.container.classList.remove('clock-morning', 'clock-afternoon', 'clock-evening', 'clock-night');
+
+    if (hour >= 5 && hour < 12) {
+      this.container.classList.add('clock-morning');
+    } else if (hour >= 12 && hour < 17) {
+      this.container.classList.add('clock-afternoon');
+    } else if (hour >= 17 && hour < 21) {
+      this.container.classList.add('clock-evening');
+    } else {
+      this.container.classList.add('clock-night');
+    }
   }
 
   startTicking(intervalMs = 10000) {

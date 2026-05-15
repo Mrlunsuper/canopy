@@ -1,0 +1,431 @@
+/* ─── Widget Personality Pass ───
+   Each desktop widget now has a distinct visual language with a squarer card layout:
+   clock = luminous glass, music = neon console, pomodoro = warm focus block,
+   weather = atmospheric sky tile. */
+:root {
+  --widget-card-radius: 16px;
+  --widget-card-radius-sm: 12px;
+}
+
+#taskbar-clock {
+  position: relative;
+  overflow: hidden;
+  padding: 22px 34px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--widget-card-radius);
+  background:
+    radial-gradient(circle at 20% 12%, rgba(255, 255, 255, 0.16), transparent 34%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.035));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 24px 80px rgba(0, 0, 0, 0.45),
+    0 0 70px rgba(124, 106, 247, 0.16);
+  backdrop-filter: blur(22px) saturate(1.25);
+  -webkit-backdrop-filter: blur(22px) saturate(1.25);
+}
+
+#taskbar-clock::before {
+  content: 'LOCAL TIME';
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+}
+
+#taskbar-clock::after {
+  content: '';
+  position: absolute;
+  inset: auto 24px 12px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.42), transparent);
+  opacity: 0.5;
+}
+
+#clock-time {
+  background: linear-gradient(180deg, #fff 12%, rgba(255, 255, 255, 0.78) 48%, rgba(186, 178, 255, 0.88));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+#center-widget.clock-morning #taskbar-clock {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 24px 80px rgba(0, 0, 0, 0.42), 0 0 80px rgba(251, 191, 36, 0.18);
+}
+
+#center-widget.clock-afternoon #taskbar-clock {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 24px 80px rgba(0, 0, 0, 0.42), 0 0 80px rgba(56, 189, 248, 0.18);
+}
+
+#center-widget.clock-evening #taskbar-clock {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 24px 80px rgba(0, 0, 0, 0.42), 0 0 90px rgba(244, 114, 182, 0.2);
+}
+
+#center-widget.clock-night #taskbar-clock {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.17), 0 24px 80px rgba(0, 0, 0, 0.52), 0 0 90px rgba(129, 140, 248, 0.18);
+}
+
+#music-pill {
+  min-height: 56px;
+  height: auto;
+  padding: 9px 14px;
+  border-radius: var(--widget-card-radius);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(124, 106, 247, 0.42), transparent 34%),
+    radial-gradient(circle at 88% 100%, rgba(34, 211, 238, 0.18), transparent 34%),
+    linear-gradient(135deg, rgba(12, 10, 24, 0.92), rgba(5, 7, 18, 0.84));
+  border-color: rgba(167, 139, 250, 0.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 12px 36px rgba(0, 0, 0, 0.34),
+    0 0 28px rgba(124, 106, 247, 0.14);
+}
+
+#music-pill::before {
+  content: '';
+  position: absolute;
+  inset: 7px 46px auto 46px;
+  height: 10px;
+  background: repeating-linear-gradient(90deg,
+    rgba(167, 139, 250, 0.24) 0 2px,
+    transparent 2px 7px,
+    rgba(34, 211, 238, 0.18) 7px 9px,
+    transparent 9px 14px);
+  border-radius: 4px;
+  opacity: 0.42;
+  pointer-events: none;
+}
+
+#music-player.playing #music-pill::before {
+  opacity: 0.74;
+  animation: widgetEqualizer 1.2s ease-in-out infinite;
+}
+
+#music-toggle {
+  background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+  box-shadow: 0 0 0 4px rgba(124, 106, 247, 0.1), 0 8px 18px rgba(124, 106, 247, 0.25);
+}
+
+#music-progress-fill {
+  background: linear-gradient(90deg, #8b5cf6, #22d3ee, #a78bfa);
+}
+
+#pomodoro-pill {
+  position: relative;
+  min-height: 56px;
+  height: auto;
+  padding: 9px 14px;
+  border-radius: var(--widget-card-radius);
+  background:
+    linear-gradient(90deg, rgba(251, 146, 60, 0.16), transparent 28%),
+    radial-gradient(circle at 12% 50%, rgba(251, 191, 36, 0.24), transparent 34%),
+    linear-gradient(135deg, rgba(41, 19, 15, 0.92), rgba(18, 24, 38, 0.88));
+  border-color: rgba(251, 146, 60, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 14px 38px rgba(67, 20, 7, 0.28),
+    0 0 34px rgba(251, 146, 60, 0.14);
+}
+
+#pomodoro-pill::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 4px;
+  border-radius: 0 6px 6px 0;
+  background: linear-gradient(180deg, #f97316, #facc15);
+  box-shadow: 0 0 16px rgba(249, 115, 22, 0.5);
+}
+
+#pomodoro-player.phase-break #pomodoro-pill {
+  background:
+    linear-gradient(90deg, rgba(34, 197, 94, 0.15), transparent 28%),
+    radial-gradient(circle at 12% 50%, rgba(45, 212, 191, 0.22), transparent 34%),
+    linear-gradient(135deg, rgba(8, 47, 73, 0.9), rgba(18, 24, 38, 0.88));
+  border-color: rgba(45, 212, 191, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 14px 38px rgba(8, 47, 73, 0.28), 0 0 34px rgba(45, 212, 191, 0.14);
+}
+
+#pomodoro-player.phase-long #pomodoro-pill {
+  background:
+    linear-gradient(90deg, rgba(168, 85, 247, 0.14), transparent 28%),
+    radial-gradient(circle at 12% 50%, rgba(192, 132, 252, 0.2), transparent 34%),
+    linear-gradient(135deg, rgba(45, 21, 63, 0.9), rgba(18, 24, 38, 0.88));
+  border-color: rgba(192, 132, 252, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 14px 38px rgba(45, 21, 63, 0.3), 0 0 34px rgba(192, 132, 252, 0.14);
+}
+
+#weather-pill {
+  position: relative;
+  min-height: 56px;
+  height: auto;
+  padding: 9px 14px;
+  border-radius: var(--widget-card-radius);
+  background:
+    radial-gradient(circle at 15% 12%, rgba(255, 255, 255, 0.3), transparent 20%),
+    linear-gradient(135deg, rgba(14, 165, 233, 0.6), rgba(6, 182, 212, 0.22) 48%, rgba(15, 23, 42, 0.78));
+  border-color: rgba(125, 211, 252, 0.32);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 14px 34px rgba(8, 47, 73, 0.28),
+    0 0 38px rgba(56, 189, 248, 0.14);
+}
+
+#weather-pill::before {
+  content: '';
+  position: absolute;
+  top: -32px;
+  right: -24px;
+  width: 86px;
+  height: 86px;
+  border-radius: 18px;
+  background: radial-gradient(circle, rgba(254, 240, 138, 0.78), rgba(251, 191, 36, 0.18) 48%, transparent 70%);
+  opacity: 0.58;
+  pointer-events: none;
+}
+
+#weather-widget.weather-night #weather-pill {
+  background:
+    radial-gradient(circle at 16% 18%, rgba(255, 255, 255, 0.16), transparent 18%),
+    linear-gradient(135deg, rgba(30, 41, 91, 0.78), rgba(49, 46, 129, 0.34) 50%, rgba(2, 6, 23, 0.88));
+  border-color: rgba(129, 140, 248, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 14px 34px rgba(2, 6, 23, 0.34), 0 0 42px rgba(129, 140, 248, 0.16);
+}
+
+#weather-widget.weather-night #weather-pill::before {
+  background: radial-gradient(circle, rgba(226, 232, 240, 0.82), rgba(148, 163, 184, 0.22) 42%, transparent 68%);
+}
+
+#weather-widget.weather-rain #weather-pill::after,
+#weather-widget.weather-storm #weather-pill::after,
+#weather-widget.weather-snow #weather-pill::after,
+#weather-widget.weather-fog #weather-pill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.22;
+  border-radius: inherit;
+}
+
+#weather-widget.weather-rain #weather-pill::after,
+#weather-widget.weather-storm #weather-pill::after {
+  background: repeating-linear-gradient(115deg, transparent 0 9px, rgba(255, 255, 255, 0.34) 9px 11px, transparent 11px 18px);
+}
+
+#weather-widget.weather-snow #weather-pill::after {
+  background: radial-gradient(circle at 24% 28%, rgba(255,255,255,0.9) 0 1px, transparent 2px), radial-gradient(circle at 68% 64%, rgba(255,255,255,0.8) 0 1px, transparent 2px), radial-gradient(circle at 82% 22%, rgba(255,255,255,0.72) 0 1px, transparent 2px);
+}
+
+#weather-widget.weather-fog #weather-pill::after {
+  background: repeating-linear-gradient(0deg, transparent 0 9px, rgba(255, 255, 255, 0.2) 9px 11px, transparent 11px 20px);
+}
+
+#weather-widget.weather-storm #weather-pill {
+  border-color: rgba(250, 204, 21, 0.36);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 14px 34px rgba(2, 6, 23, 0.38), 0 0 42px rgba(250, 204, 21, 0.12);
+}
+
+
+/* Squarer widget layout overrides: keep the existing compact controls, but
+   present every floating widget as a small desktop card instead of a pill. */
+#music-player.collapsed #music-pill,
+#pomodoro-player.collapsed #pomodoro-pill,
+#weather-widget.collapsed #weather-pill {
+  border-radius: var(--widget-card-radius-sm);
+  padding: 8px 10px;
+}
+
+#music-pill,
+#pomodoro-pill,
+#weather-pill,
+#taskbar-clock {
+  outline: 1px solid rgba(255, 255, 255, 0.04);
+  outline-offset: -5px;
+}
+
+#music-pill:hover,
+#pomodoro-pill:hover,
+#weather-pill:hover {
+  border-radius: var(--widget-card-radius-sm);
+}
+
+#music-toggle,
+#pomodoro-toggle {
+  border-radius: 12px;
+}
+
+#music-shuffle,
+#music-repeat,
+#music-prev,
+#music-next,
+#music-collapse,
+#pomodoro-skip,
+#pomodoro-reset,
+#pomodoro-collapse,
+#weather-refresh,
+#weather-collapse {
+  border-radius: 8px;
+}
+
+#pomodoro-ring-wrap {
+  border-radius: 12px;
+}
+
+#weather-temp,
+#pomodoro-time,
+#music-time {
+  border-radius: 8px;
+}
+
+@keyframes widgetEqualizer {
+  0%, 100% { transform: scaleY(0.75); filter: hue-rotate(0deg); }
+  50% { transform: scaleY(1.22); filter: hue-rotate(28deg); }
+}
+
+/* ─── Widget Layout Settings ─── */
+#widget-layout-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.widget-layout-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.widget-layout-option {
+  justify-content: center;
+  margin-bottom: 0;
+  text-align: center;
+}
+
+.widget-layout-option.active {
+  background: rgba(124, 106, 247, 0.18);
+  border-color: rgba(124, 106, 247, 0.45);
+  box-shadow: 0 0 0 2px rgba(124, 106, 247, 0.12);
+  color: #fff;
+}
+
+/* ─── Vertical Widget Layout Mode ───
+   Enabled from Settings → Widgets. This stacks each widget's controls into a
+   taller card while keeping horizontal mode as the compact default. */
+#desktop.widget-layout-vertical #music-pill,
+#desktop.widget-layout-vertical #pomodoro-pill,
+#desktop.widget-layout-vertical #weather-pill {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 9px;
+  width: 196px;
+  min-height: 0;
+  padding: 14px;
+  border-radius: var(--widget-card-radius);
+  white-space: normal;
+}
+
+#desktop.widget-layout-vertical #music-pill::before {
+  inset: 10px 14px auto 14px;
+}
+
+#desktop.widget-layout-vertical #music-drag-handle,
+#desktop.widget-layout-vertical #pomodoro-drag-handle,
+#desktop.widget-layout-vertical #weather-drag-handle {
+  align-self: flex-start;
+  margin: 0 0 -2px;
+}
+
+#desktop.widget-layout-vertical #music-track-label,
+#desktop.widget-layout-vertical #music-time,
+#desktop.widget-layout-vertical #pomodoro-mode,
+#desktop.widget-layout-vertical #pomodoro-time,
+#desktop.widget-layout-vertical #pomodoro-sessions,
+#desktop.widget-layout-vertical #weather-desc,
+#desktop.widget-layout-vertical #weather-location {
+  max-width: none;
+  width: 100%;
+  text-align: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+#desktop.widget-layout-vertical #music-track-label {
+  margin-top: 4px;
+}
+
+#desktop.widget-layout-vertical #music-volume {
+  width: 100%;
+  margin: 0;
+}
+
+#desktop.widget-layout-vertical #music-shuffle,
+#desktop.widget-layout-vertical #music-prev,
+#desktop.widget-layout-vertical #music-toggle,
+#desktop.widget-layout-vertical #music-next,
+#desktop.widget-layout-vertical #music-repeat,
+#desktop.widget-layout-vertical #pomodoro-toggle,
+#desktop.widget-layout-vertical #pomodoro-skip,
+#desktop.widget-layout-vertical #pomodoro-reset,
+#desktop.widget-layout-vertical #pomodoro-collapse,
+#desktop.widget-layout-vertical #weather-refresh,
+#desktop.widget-layout-vertical #weather-collapse {
+  align-self: center;
+}
+
+#desktop.widget-layout-vertical #pomodoro-ring-wrap,
+#desktop.widget-layout-vertical #weather-icon,
+#desktop.widget-layout-vertical #weather-temp {
+  align-self: center;
+}
+
+#desktop.widget-layout-vertical #weather-pill {
+  width: 220px;
+}
+
+#desktop.widget-layout-vertical #weather-details {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding: 8px 0;
+  border-left: 0;
+  border-right: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+#desktop.widget-layout-vertical .weather-detail {
+  justify-content: center;
+}
+
+#desktop.widget-layout-vertical #pomodoro-pill {
+  width: 176px;
+  align-items: center;
+}
+
+#desktop.widget-layout-vertical #pomodoro-pill::before {
+  top: 12px;
+  bottom: 12px;
+}
+
+#desktop.widget-layout-vertical #center-widget #taskbar-clock {
+  min-width: 260px;
+}
+
+#desktop.widget-layout-vertical #music-player.collapsed #music-pill,
+#desktop.widget-layout-vertical #pomodoro-player.collapsed #pomodoro-pill,
+#desktop.widget-layout-vertical #weather-widget.collapsed #weather-pill {
+  width: auto;
+  min-width: 60px;
+  align-items: center;
+}
