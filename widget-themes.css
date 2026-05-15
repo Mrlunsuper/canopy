@@ -318,12 +318,12 @@
   color: #fff;
 }
 
-/* ─── Vertical Widget Layout Mode ───
+/* ─── Card Widget Layout Mode ───
    Enabled from Settings → Widgets. This stacks each widget's controls into a
-   taller card while keeping horizontal mode as the compact default. */
-#desktop.widget-layout-vertical #music-pill,
-#desktop.widget-layout-vertical #pomodoro-pill,
-#desktop.widget-layout-vertical #weather-pill {
+   taller card while keeping compact mode as the default. */
+#desktop.widget-layout-card #music-pill,
+#desktop.widget-layout-card #pomodoro-pill,
+#desktop.widget-layout-card #weather-pill {
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
@@ -335,24 +335,24 @@
   white-space: normal;
 }
 
-#desktop.widget-layout-vertical #music-pill::before {
+#desktop.widget-layout-card #music-pill::before {
   inset: 10px 14px auto 14px;
 }
 
-#desktop.widget-layout-vertical #music-drag-handle,
-#desktop.widget-layout-vertical #pomodoro-drag-handle,
-#desktop.widget-layout-vertical #weather-drag-handle {
+#desktop.widget-layout-card #music-drag-handle,
+#desktop.widget-layout-card #pomodoro-drag-handle,
+#desktop.widget-layout-card #weather-drag-handle {
   align-self: flex-start;
   margin: 0 0 -2px;
 }
 
-#desktop.widget-layout-vertical #music-track-label,
-#desktop.widget-layout-vertical #music-time,
-#desktop.widget-layout-vertical #pomodoro-mode,
-#desktop.widget-layout-vertical #pomodoro-time,
-#desktop.widget-layout-vertical #pomodoro-sessions,
-#desktop.widget-layout-vertical #weather-desc,
-#desktop.widget-layout-vertical #weather-location {
+#desktop.widget-layout-card #music-track-label,
+#desktop.widget-layout-card #music-time,
+#desktop.widget-layout-card #pomodoro-mode,
+#desktop.widget-layout-card #pomodoro-time,
+#desktop.widget-layout-card #pomodoro-sessions,
+#desktop.widget-layout-card #weather-desc,
+#desktop.widget-layout-card #weather-location {
   max-width: none;
   width: 100%;
   text-align: center;
@@ -360,40 +360,40 @@
   padding-right: 0;
 }
 
-#desktop.widget-layout-vertical #music-track-label {
+#desktop.widget-layout-card #music-track-label {
   margin-top: 4px;
 }
 
-#desktop.widget-layout-vertical #music-volume {
+#desktop.widget-layout-card #music-volume {
   width: 100%;
   margin: 0;
 }
 
-#desktop.widget-layout-vertical #music-shuffle,
-#desktop.widget-layout-vertical #music-prev,
-#desktop.widget-layout-vertical #music-toggle,
-#desktop.widget-layout-vertical #music-next,
-#desktop.widget-layout-vertical #music-repeat,
-#desktop.widget-layout-vertical #pomodoro-toggle,
-#desktop.widget-layout-vertical #pomodoro-skip,
-#desktop.widget-layout-vertical #pomodoro-reset,
-#desktop.widget-layout-vertical #pomodoro-collapse,
-#desktop.widget-layout-vertical #weather-refresh,
-#desktop.widget-layout-vertical #weather-collapse {
+#desktop.widget-layout-card #music-shuffle,
+#desktop.widget-layout-card #music-prev,
+#desktop.widget-layout-card #music-toggle,
+#desktop.widget-layout-card #music-next,
+#desktop.widget-layout-card #music-repeat,
+#desktop.widget-layout-card #pomodoro-toggle,
+#desktop.widget-layout-card #pomodoro-skip,
+#desktop.widget-layout-card #pomodoro-reset,
+#desktop.widget-layout-card #pomodoro-collapse,
+#desktop.widget-layout-card #weather-refresh,
+#desktop.widget-layout-card #weather-collapse {
   align-self: center;
 }
 
-#desktop.widget-layout-vertical #pomodoro-ring-wrap,
-#desktop.widget-layout-vertical #weather-icon,
-#desktop.widget-layout-vertical #weather-temp {
+#desktop.widget-layout-card #pomodoro-ring-wrap,
+#desktop.widget-layout-card #weather-icon,
+#desktop.widget-layout-card #weather-temp {
   align-self: center;
 }
 
-#desktop.widget-layout-vertical #weather-pill {
+#desktop.widget-layout-card #weather-pill {
   width: 220px;
 }
 
-#desktop.widget-layout-vertical #weather-details {
+#desktop.widget-layout-card #weather-details {
   flex-direction: column;
   align-items: stretch;
   gap: 6px;
@@ -404,27 +404,27 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-#desktop.widget-layout-vertical .weather-detail {
+#desktop.widget-layout-card .weather-detail {
   justify-content: center;
 }
 
-#desktop.widget-layout-vertical #pomodoro-pill {
+#desktop.widget-layout-card #pomodoro-pill {
   width: 176px;
   align-items: center;
 }
 
-#desktop.widget-layout-vertical #pomodoro-pill::before {
+#desktop.widget-layout-card #pomodoro-pill::before {
   top: 12px;
   bottom: 12px;
 }
 
-#desktop.widget-layout-vertical #center-widget #taskbar-clock {
+#desktop.widget-layout-card #center-widget #taskbar-clock {
   min-width: 260px;
 }
 
-#desktop.widget-layout-vertical #music-player.collapsed #music-pill,
-#desktop.widget-layout-vertical #pomodoro-player.collapsed #pomodoro-pill,
-#desktop.widget-layout-vertical #weather-widget.collapsed #weather-pill {
+#desktop.widget-layout-card #music-player.collapsed #music-pill,
+#desktop.widget-layout-card #pomodoro-player.collapsed #pomodoro-pill,
+#desktop.widget-layout-card #weather-widget.collapsed #weather-pill {
   width: auto;
   min-width: 60px;
   align-items: center;

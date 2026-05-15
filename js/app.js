@@ -161,24 +161,29 @@ class CanopyApp {
   _loadWidgetLayout() {
     try {
       const saved = localStorage.getItem(WIDGET_LAYOUT_KEY);
-      return saved === 'vertical' ? 'vertical' : 'horizontal';
+      const layout = saved === 'card' || saved === 'vertical' ? 'card' : 'compact';
+      if (saved && saved !== layout) {
+        try { localStorage.setItem(WIDGET_LAYOUT_KEY, layout); } catch {}
+      }
+      return layout;
     } catch {
-      return 'horizontal';
+      return 'compact';
     }
   }
 
   /**
    * Apply the widget control layout globally.
-   * @param {'horizontal'|'vertical'} layout
+   * @param {'compact'|'card'} layout
    * @param {boolean} persist
    * @private
    */
   _applyWidgetLayout(layout, persist = true) {
-    const nextLayout = layout === 'vertical' ? 'vertical' : 'horizontal';
+    const nextLayout = layout === 'card' || layout === 'vertical' ? 'card' : 'compact';
+    const layoutLabel = nextLayout === 'card' ? 'Card' : 'Compact';
     const desktop = document.getElementById('desktop');
     if (desktop) {
-      desktop.classList.toggle('widget-layout-vertical', nextLayout === 'vertical');
-      desktop.classList.toggle('widget-layout-horizontal', nextLayout === 'horizontal');
+      desktop.classList.toggle('widget-layout-card', nextLayout === 'card');
+      desktop.classList.toggle('widget-layout-compact', nextLayout === 'compact');
     }
 
     document.querySelectorAll('.widget-layout-option').forEach(btn => {
@@ -189,7 +194,7 @@ class CanopyApp {
 
     if (persist) {
       try { localStorage.setItem(WIDGET_LAYOUT_KEY, nextLayout); } catch {}
-      toast(`Widget layout: ${nextLayout}`, 'success');
+      toast(`Widget layout: ${layoutLabel}`, 'success');
     }
   }
 
