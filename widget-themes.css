@@ -422,10 +422,103 @@
   min-width: 260px;
 }
 
+/* Collapsed vertical cards: make every widget an icon-only square instead of
+   reusing the horizontal max-width collapse rules. */
+#desktop.widget-layout-vertical {
+  --widget-collapsed-card-size: 56px;
+}
+
 #desktop.widget-layout-vertical #music-player.collapsed #music-pill,
 #desktop.widget-layout-vertical #pomodoro-player.collapsed #pomodoro-pill,
 #desktop.widget-layout-vertical #weather-widget.collapsed #weather-pill {
-  width: auto;
-  min-width: 60px;
+  box-sizing: border-box;
+  width: var(--widget-collapsed-card-size);
+  min-width: var(--widget-collapsed-card-size);
+  max-width: var(--widget-collapsed-card-size);
+  height: var(--widget-collapsed-card-size);
+  min-height: var(--widget-collapsed-card-size);
+  padding: 6px;
+  gap: 0;
   align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  white-space: normal;
+}
+
+#desktop.widget-layout-vertical #music-player.collapsed #music-pill::before,
+#desktop.widget-layout-vertical #weather-widget.collapsed #weather-pill::before,
+#desktop.widget-layout-vertical #weather-widget.collapsed #weather-pill::after {
+  display: none;
+}
+
+#desktop.widget-layout-vertical #music-player.collapsed #music-drag-handle,
+#desktop.widget-layout-vertical #music-player.collapsed #music-shuffle,
+#desktop.widget-layout-vertical #music-player.collapsed #music-prev,
+#desktop.widget-layout-vertical #music-player.collapsed #music-track-label,
+#desktop.widget-layout-vertical #music-player.collapsed #music-time,
+#desktop.widget-layout-vertical #music-player.collapsed #music-next,
+#desktop.widget-layout-vertical #music-player.collapsed #music-repeat,
+#desktop.widget-layout-vertical #music-player.collapsed #music-volume,
+#desktop.widget-layout-vertical #music-player.collapsed #music-progress,
+#desktop.widget-layout-vertical #pomodoro-player.collapsed #pomodoro-drag-handle,
+#desktop.widget-layout-vertical #pomodoro-player.collapsed #pomodoro-mode,
+#desktop.widget-layout-vertical #pomodoro-player.collapsed #pomodoro-time,
+#desktop.widget-layout-vertical #pomodoro-player.collapsed #pomodoro-sessions,
+#desktop.widget-layout-vertical #pomodoro-player.collapsed #pomodoro-toggle,
+#desktop.widget-layout-vertical #pomodoro-player.collapsed #pomodoro-skip,
+#desktop.widget-layout-vertical #pomodoro-player.collapsed #pomodoro-reset,
+#desktop.widget-layout-vertical #weather-widget.collapsed #weather-drag-handle,
+#desktop.widget-layout-vertical #weather-widget.collapsed #weather-temp,
+#desktop.widget-layout-vertical #weather-widget.collapsed #weather-desc,
+#desktop.widget-layout-vertical #weather-widget.collapsed #weather-details,
+#desktop.widget-layout-vertical #weather-widget.collapsed #weather-location,
+#desktop.widget-layout-vertical #weather-widget.collapsed #weather-refresh {
+  display: none;
+}
+
+#desktop.widget-layout-vertical #music-player.collapsed #music-toggle,
+#desktop.widget-layout-vertical #pomodoro-player.collapsed #pomodoro-ring-wrap,
+#desktop.widget-layout-vertical #weather-widget.collapsed #weather-icon {
+  align-self: center;
+  margin: 0;
+}
+
+#desktop.widget-layout-vertical #music-player.collapsed #music-toggle {
+  width: 30px;
+  height: 30px;
+}
+
+#desktop.widget-layout-vertical #pomodoro-player.collapsed #pomodoro-ring-wrap {
+  width: 30px;
+  height: 30px;
+}
+
+#desktop.widget-layout-vertical #pomodoro-player.collapsed #pomodoro-progress-ring {
+  width: 30px;
+  height: 30px;
+}
+
+#desktop.widget-layout-vertical #weather-widget.collapsed #weather-icon {
+  font-size: 24px;
+}
+
+#desktop.widget-layout-vertical #music-player.collapsed #music-collapse,
+#desktop.widget-layout-vertical #pomodoro-player.collapsed #pomodoro-collapse,
+#desktop.widget-layout-vertical #weather-widget.collapsed #weather-collapse {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 18px;
+  height: 18px;
+  padding: 2px;
+  margin: 0;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+#desktop.widget-layout-vertical #music-player.collapsed #music-collapse svg,
+#desktop.widget-layout-vertical #pomodoro-player.collapsed #pomodoro-collapse svg,
+#desktop.widget-layout-vertical #weather-widget.collapsed #weather-collapse svg {
+  width: 12px;
+  height: 12px;
 }
