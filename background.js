@@ -9,38 +9,102 @@ const STORAGE_KEY = 'desktop_tab_data';
 const GRID_COL    = 130;
 const GRID_ROW    = 116;
 
+const WALLHAVEN_API_ORIGIN = 'https://wallhaven.cc';
+const WALLHAVEN_IMAGE_ORIGIN = 'https://w.wallhaven.cc';
+const MUSIC_INDEX_ORIGIN = 'https://pub-1fcf1661114842b0b4459512cb05dd05.r2.dev';
+const MAX_PROXY_BYTES = 1024 * 1024;
+
 function uid() {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 }
 
-// ─── Proxy Wallhaven API requests (bypass CORS) ────────
+function parseHttpsUrl(rawUrl) {
+  if (typeof rawUrl !== 'string') return null;
+
+  try {
+    const url = new URL(rawUrl);
+    return url.protocol === 'https:' ? url : null;
+  } catch {
+    return null;
+  }
+}
+
+function isWallhavenSearchUrl(rawUrl) {
+  const url = parseHttpsUrl(rawUrl);
+  return Boolean(url && url.origin === WALLHAVEN_API_ORIGIN && url.pathname === '/api/v1/search');
+}
+
+function isWallhavenDownloadUrl(rawUrl) {
+  const url = parseHttpsUrl(rawUrl);
+  return Boolean(url && url.origin === WALLHAVEN_IMAGE_ORIGIN && url.pathname.startsWith('/full/'));
+}
+
+function isMusicIndexUrl(rawUrl) {
+  const url = parseHttpsUrl(rawUrl);
+  return Boolean(url && url.origin === MUSIC_INDEX_ORIGIN && url.pathname === '/index.json');
+}
+
+function sanitizeDownloadFilename(filename) {
+  const safeName = typeof filename === 'string' ? filename : 'wallhaven-download.jpg';
+  return safeName
+    .replace(/[\\/:*?"<>|\u0000-\u001F]/g, '-')
+    .replace(/^\.+/, '')
+    .slice(0, 120) || 'wallhaven-download.jpg';
+}
+
+async function fetchJson(url) {
+  const res = await fetch(url, { credentials: 'omit', cache: 'no-store' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+  const contentLength = Number(res.headers.get('content-length') || 0);
+  if (contentLength > MAX_PROXY_BYTES) {
+    throw new Error('Response too large');
+  }
+
+  return res.json();
+}
+
+// ─── Proxy trusted remote JSON requests ────────
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'wallhaven-search') {
-    fetch(request.url)
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
+    if (!isWallhavenSearchUrl(request.url)) {
+      sendResponse({ ok: false, error: 'Blocked untrusted Wallhaven URL' });
+      return false;
+    }
+
+    fetchJson(request.url)
       .then(data => sendResponse({ ok: true, data }))
       .catch(err => sendResponse({ ok: false, error: err.message }));
     return true;
   }
 
   if (request.type === 'wallhaven-download') {
+    if (!isWallhavenDownloadUrl(request.url)) {
+      sendResponse({ ok: false, error: 'Blocked untrusted download URL' });
+      return false;
+    }
+
     chrome.downloads.download({
       url: request.url,
-      filename: request.filename,
+      filename: sanitizeDownloadFilename(request.filename),
       saveAs: true,
+    }, downloadId => {
+      if (chrome.runtime.lastError) {
+        sendResponse({ ok: false, error: chrome.runtime.lastError.message });
+        return;
+      }
+      sendResponse({ ok: true, downloadId });
     });
-    return false;
+    return true;
   }
 
   if (request.type === 'music-sync') {
-    fetch(request.url)
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
+    if (!isMusicIndexUrl(request.url)) {
+      sendResponse({ ok: false, error: 'Blocked untrusted music index URL' });
+      return false;
+    }
+
+    fetchJson(request.url)
       .then(data => sendResponse({ ok: true, data }))
       .catch(err => sendResponse({ ok: false, error: err.message }));
     return true;
