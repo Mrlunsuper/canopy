@@ -15,11 +15,13 @@ export class ClockWidget {
     this.timeEl = document.getElementById('clock-time');
     this.dateEl = document.getElementById('clock-date');
     this._intervalId = null;
+    this._timeoutId = null;
     this._dragState = null;
     this._resizeState = null;
     this._baseTimeSize = 80;
     this._baseDateSize = 14;
     this._scale = 1;
+    this._lastMood = null;
     this._restorePosition();
     this._restoreSize();
     this._initDrag();
@@ -176,25 +178,44 @@ export class ClockWidget {
   }
 
   _applyTimeMood(hour) {
-    this.container.classList.remove('clock-morning', 'clock-afternoon', 'clock-evening', 'clock-night');
-
+    let mood = 'clock-night';
     if (hour >= 5 && hour < 12) {
-      this.container.classList.add('clock-morning');
+      mood = 'clock-morning';
     } else if (hour >= 12 && hour < 17) {
-      this.container.classList.add('clock-afternoon');
+      mood = 'clock-afternoon';
     } else if (hour >= 17 && hour < 21) {
-      this.container.classList.add('clock-evening');
-    } else {
-      this.container.classList.add('clock-night');
+      mood = 'clock-evening';
     }
+
+    if (mood === this._lastMood) return;
+    this.container.classList.remove('clock-morning', 'clock-afternoon', 'clock-evening', 'clock-night');
+    this.container.classList.add(mood);
+    this._lastMood = mood;
   }
 
-  startTicking(intervalMs = 10000) {
+  startTicking(intervalMs = 60000) {
+    this.stop();
     this.update();
-    this._intervalId = setInterval(() => this.update(), intervalMs);
+
+    if (intervalMs !== 60000) {
+      this._intervalId = setInterval(() => this.update(), intervalMs);
+      return;
+    }
+
+    const now = new Date();
+    const msToNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+    this._timeoutId = setTimeout(() => {
+      this.update();
+      this._timeoutId = null;
+      this._intervalId = setInterval(() => this.update(), 60000);
+    }, Math.max(250, msToNextMinute));
   }
 
   stop() {
+    if (this._timeoutId) {
+      clearTimeout(this._timeoutId);
+      this._timeoutId = null;
+    }
     if (this._intervalId) {
       clearInterval(this._intervalId);
       this._intervalId = null;

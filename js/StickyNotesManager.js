@@ -17,6 +17,7 @@ export class StickyNotesManager {
     this._dragState = null;
     this._resizeState = null;
     this._focusedId = null;
+    this._searchQuery = '';
   }
 
   async init() {
@@ -217,6 +218,7 @@ export class StickyNotesManager {
     this.notes.forEach(note => {
       layer.appendChild(this._createNoteElement(note));
     });
+    this._applySearchFilter();
   }
 
   _createNoteElement(note) {
@@ -302,22 +304,45 @@ export class StickyNotesManager {
     if (this._saveTimers.has(id)) {
       clearTimeout(this._saveTimers.get(id));
     }
-    this._saveTimers.set(id, setTimeout(() => {
+    this._saveTimers.set(id, setTimeout(() => this._flushContentSave(id), DEBOUNCE_MS));
+  }
+
+  _flushContentSave(id) {
+    if (this._saveTimers.has(id)) {
+      clearTimeout(this._saveTimers.get(id));
       this._saveTimers.delete(id);
-      const note = this.notes.find(n => n.id === id);
-      if (!note) return;
-      const el = document.querySelector(`.sticky-note[data-id="${id}"]`);
-      if (!el) return;
-      const contentEl = el.querySelector('.sticky-note-content');
-      const raw = contentEl.textContent || '';
-      note.content = raw;
-      const firstLine = raw.split('\n')[0].trim().substring(0, 50);
-      note.title = firstLine || '';
-      note.updatedAt = Date.now();
-      this._saveNotes();
-      const titleEl = el.querySelector('.sticky-note-title');
-      if (titleEl) titleEl.textContent = note.title;
-    }, DEBOUNCE_MS));
+    }
+
+    const note = this.notes.find(n => n.id === id);
+    if (!note) return;
+    const el = document.querySelector(`.sticky-note[data-id="${id}"]`);
+    if (!el) return;
+    const contentEl = el.querySelector('.sticky-note-content');
+    const raw = contentEl.textContent || '';
+    note.content = raw;
+    const firstLine = raw.split('\n')[0].trim().substring(0, 50);
+    note.title = firstLine || '';
+    note.updatedAt = Date.now();
+    this._saveNotes();
+    const titleEl = el.querySelector('.sticky-note-title');
+    if (titleEl) titleEl.textContent = note.title;
+  }
+
+  _flushPendingSaves() {
+    [...this._saveTimers.keys()].forEach(id => this._flushContentSave(id));
+  }
+
+  _matchesSearch(note, query) {
+    if (!query) return true;
+    return `${note.title || ''}\n${note.content || ''}`.toLowerCase().includes(query);
+  }
+
+  _applySearchFilter() {
+    const query = this._searchQuery;
+    document.querySelectorAll('.sticky-note').forEach(el => {
+      const note = this.notes.find(n => n.id === el.dataset.id);
+      el.classList.toggle('hidden', note ? !this._matchesSearch(note, query) : false);
+    });
   }
 
   // ─── Color ────────────────────────────────────
@@ -527,14 +552,19 @@ export class StickyNotesManager {
     const container = document.getElementById('deleted-notes-container');
     if (!container) return;
     container.innerHTML = '';
-    if (this.deletedNotes.length === 0) {
+    const query = this._searchQuery;
+    const entries = this.deletedNotes
+      .map((entry, index) => ({ entry, index }))
+      .filter(({ entry }) => this._matchesSearch(entry.note, query));
+
+    if (entries.length === 0) {
       const empty = document.createElement('p');
       empty.className = 'settings-info dim';
-      empty.textContent = 'No recently deleted notes.';
+      empty.textContent = query ? 'No matching deleted notes.' : 'No recently deleted notes.';
       container.appendChild(empty);
       return;
     }
-    this.deletedNotes.forEach((entry, i) => {
+    entries.forEach(({ entry, index }) => {
       const row = document.createElement('div');
       row.className = 'deleted-note-row';
       const note = entry.note;
@@ -554,7 +584,7 @@ export class StickyNotesManager {
       const restoreBtn = document.createElement('button');
       restoreBtn.className = 'deleted-note-restore';
       restoreBtn.textContent = 'Restore';
-      restoreBtn.addEventListener('click', () => this.restoreDeleted(i));
+      restoreBtn.addEventListener('click', () => this.restoreDeleted(index));
 
       row.appendChild(dot);
       row.appendChild(titleSpan);
@@ -574,11 +604,22 @@ export class StickyNotesManager {
   // ─── Global events ────────────────────────────
 
   _wireGlobalEvents() {
+    const searchInput = document.getElementById('sticky-notes-search');
+    if (searchInput) {
+      searchInput.addEventListener('input', () => {
+        this._searchQuery = searchInput.value.trim().toLowerCase();
+        this._applySearchFilter();
+        this._renderDeletedSettings();
+      });
+    }
+
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape' && this._focusedId) {
         this.blurActive();
         e.preventDefault();
       }
     });
+
+    window.addEventListener('pagehide', () => this._flushPendingSaves());
   }
 }

@@ -21,6 +21,14 @@ import { StickyNotesManager } from './StickyNotesManager.js';
 import { WeatherWidget }      from './WeatherWidget.js';
 
 const WIDGET_LAYOUT_KEY = 'canopy_widget_layout';
+const WIDGET_VISIBILITY_KEY = 'canopy_widget_visibility';
+const WIDGET_VISIBILITY_DEFAULTS = {
+  clock: true,
+  music: true,
+  weather: true,
+  pomodoro: true,
+  notes: true,
+};
 
 class CanopyApp {
   constructor() {
@@ -75,6 +83,8 @@ class CanopyApp {
 
     // ── Sticky Notes ──
     this.stickyNotes = new StickyNotesManager();
+
+    this.widgetVisibility = { ...WIDGET_VISIBILITY_DEFAULTS };
   }
 
   // ═══════════════════════════════════════════════
@@ -97,6 +107,7 @@ class CanopyApp {
 
     // Apply saved widget layout before widgets paint
     this._applyWidgetLayout(this._loadWidgetLayout(), false);
+    this._applyWidgetVisibility(this._loadWidgetVisibility(), false);
 
     // Start clock
     this.clock.startTicking();
@@ -206,6 +217,60 @@ class CanopyApp {
     if (persist) {
       try { localStorage.setItem(WIDGET_LAYOUT_KEY, nextLayout); } catch {}
       toast(`Widget layout: ${layoutLabel}`, 'success');
+    }
+  }
+
+  /** @private */
+  _loadWidgetVisibility() {
+    try {
+      const raw = localStorage.getItem(WIDGET_VISIBILITY_KEY);
+      if (!raw) return { ...WIDGET_VISIBILITY_DEFAULTS };
+      const parsed = JSON.parse(raw);
+      return { ...WIDGET_VISIBILITY_DEFAULTS, ...parsed };
+    } catch {
+      return { ...WIDGET_VISIBILITY_DEFAULTS };
+    }
+  }
+
+  /** @private */
+  _saveWidgetVisibility() {
+    try {
+      localStorage.setItem(WIDGET_VISIBILITY_KEY, JSON.stringify(this.widgetVisibility));
+    } catch {}
+  }
+
+  /** @private */
+  _widgetElementMap() {
+    return {
+      clock: document.getElementById('center-widget'),
+      music: document.getElementById('music-player'),
+      weather: document.getElementById('weather-widget'),
+      pomodoro: document.getElementById('pomodoro-player'),
+      notes: document.getElementById('sticky-notes-layer'),
+    };
+  }
+
+  /** @private */
+  _applyWidgetVisibility(visibility, persist = true) {
+    this.widgetVisibility = { ...WIDGET_VISIBILITY_DEFAULTS, ...visibility };
+    const elements = this._widgetElementMap();
+
+    Object.entries(elements).forEach(([id, el]) => {
+      if (!el) return;
+      const visible = this.widgetVisibility[id] !== false;
+      el.classList.toggle('canopy-widget-disabled', !visible);
+    });
+
+    document.querySelectorAll('.widget-visibility-toggle').forEach(btn => {
+      const visible = this.widgetVisibility[btn.dataset.widgetId] !== false;
+      btn.classList.toggle('active', visible);
+      btn.setAttribute('aria-pressed', String(visible));
+      btn.title = visible ? 'Visible' : 'Hidden';
+    });
+
+    if (persist) {
+      this._saveWidgetVisibility();
+      toast('Widget visibility updated', 'success');
     }
   }
 
@@ -621,6 +686,17 @@ class CanopyApp {
       btn.addEventListener('click', () => this._applyWidgetLayout(btn.dataset.widgetLayout));
     });
     this._applyWidgetLayout(this._loadWidgetLayout(), false);
+
+    document.querySelectorAll('.widget-visibility-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.widgetId;
+        this._applyWidgetVisibility({
+          ...this.widgetVisibility,
+          [id]: this.widgetVisibility[id] === false,
+        });
+      });
+    });
+    this._applyWidgetVisibility(this._loadWidgetVisibility(), false);
 
     // ── Settings data ──
     document.getElementById('btn-export-data').addEventListener('click', () => this._exportData());

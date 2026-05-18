@@ -21,12 +21,16 @@ export class PomodoroTimer {
     this._remaining = 0;   // seconds remaining
     this._total = 0;       // total seconds for current phase
     this._running = false;
+    this._endAt = null;
+    this._lastStaticRenderKey = '';
   }
 
   init() {
     this._loadConfig();
     this._applyPosition();
-    this._setPhaseTime();
+    if (!this._restoreRunningState()) {
+      this._setPhaseTime();
+    }
     this._render();
     this._wireEvents();
     this._wireSettings();
@@ -62,27 +66,38 @@ export class PomodoroTimer {
 
   _start() {
     if (this._remaining <= 0) this._setPhaseTime();
+    if (this._interval) clearInterval(this._interval);
     this._running = true;
+    this._endAt = Date.now() + this._remaining * 1000;
     this._render();
+    this._saveConfig();
 
-    this._interval = setInterval(() => {
-      this._remaining--;
-      this._render();
-
-      if (this._remaining <= 0) {
-        this._pause();
-        this._onPhaseComplete();
-      }
-    }, 1000);
+    this._interval = setInterval(() => this._tick(), 1000);
   }
 
-  _pause() {
+  _tick() {
+    if (!this._running || !this._endAt) return;
+    const nextRemaining = Math.max(0, Math.ceil((this._endAt - Date.now()) / 1000));
+    if (nextRemaining !== this._remaining) {
+      this._remaining = nextRemaining;
+      this._render();
+    }
+
+    if (this._remaining <= 0) {
+      this._pause(false);
+      this._onPhaseComplete();
+    }
+  }
+
+  _pause(render = true) {
     this._running = false;
+    this._endAt = null;
     if (this._interval) {
       clearInterval(this._interval);
       this._interval = null;
     }
-    this._render();
+    this._saveConfig();
+    if (render) this._render();
   }
 
   _onPhaseComplete() {
@@ -117,13 +132,17 @@ export class PomodoroTimer {
   }
 
   _setPhaseTime() {
+    this._total = this._getPhaseDuration(this.config.phase);
+    this._remaining = this._total;
+  }
+
+  _getPhaseDuration(phase) {
     const durations = {
       work: this.config.workMinutes * 60,
       shortBreak: this.config.shortBreakMinutes * 60,
       longBreak: this.config.longBreakMinutes * 60
     };
-    this._total = durations[this.config.phase] || durations.work;
-    this._remaining = this._total;
+    return durations[phase] || durations.work;
   }
 
   _playNotification() {
@@ -157,7 +176,9 @@ export class PomodoroTimer {
       shortBreakMinutes: 5,
       longBreakMinutes: 15,
       completedSessions: 0,
-      position: null
+      position: null,
+      isRunning: false,
+      endAt: null
     };
   }
 
@@ -174,6 +195,26 @@ export class PomodoroTimer {
       this.config.phase = 'work';
     }
     if (typeof this.config.completedSessions !== 'number') this.config.completedSessions = 0;
+    if (typeof this.config.isRunning !== 'boolean') this.config.isRunning = false;
+    if (typeof this.config.endAt !== 'number') this.config.endAt = null;
+  }
+
+  _restoreRunningState() {
+    this._total = this._getPhaseDuration(this.config.phase);
+    if (!this.config.isRunning || !this.config.endAt) return false;
+
+    const remaining = Math.max(0, Math.ceil((this.config.endAt - Date.now()) / 1000));
+    if (remaining <= 0) {
+      if (this.config.phase === 'work') this.config.completedSessions++;
+      this._advancePhase();
+      return true;
+    }
+
+    this._remaining = remaining;
+    this._running = true;
+    this._endAt = this.config.endAt;
+    this._interval = setInterval(() => this._tick(), 1000);
+    return true;
   }
 
   _saveConfig() {
@@ -184,7 +225,9 @@ export class PomodoroTimer {
         shortBreakMinutes: this.config.shortBreakMinutes,
         longBreakMinutes: this.config.longBreakMinutes,
         completedSessions: this.config.completedSessions,
-        position: this.config.position
+        position: this.config.position,
+        isRunning: this._running,
+        endAt: this._running ? this._endAt : null
       }));
     } catch {}
   }
@@ -212,43 +255,48 @@ export class PomodoroTimer {
     // Time display
     this.timeDisplay.textContent = this._formatTime(this._remaining);
 
-    // Mode label
-    const labels = {
-      work: 'Focus',
-      shortBreak: 'Break',
-      longBreak: 'Long Break'
-    };
-    this.modeLabel.textContent = labels[this.config.phase] || 'Focus';
+    const staticRenderKey = `${this.config.phase}|${this.config.completedSessions}|${this._running}`;
+    if (staticRenderKey !== this._lastStaticRenderKey) {
+      this._lastStaticRenderKey = staticRenderKey;
 
-    // Session count
-    this.sessionCount.textContent = `#${this.config.completedSessions}`;
+      // Mode label
+      const labels = {
+        work: 'Focus',
+        shortBreak: 'Break',
+        longBreak: 'Long Break'
+      };
+      this.modeLabel.textContent = labels[this.config.phase] || 'Focus';
 
-    // Play/Pause icon
-    this.toggleBtn.innerHTML = this._running
-      ? '<i data-lucide="pause"></i>'
-      : '<i data-lucide="play"></i>';
-    this.toggleBtn.title = this._running ? 'Pause' : 'Start';
+      // Session count
+      this.sessionCount.textContent = `#${this.config.completedSessions}`;
 
-    // Phase classes
-    this.player.classList.remove('phase-work', 'phase-break', 'phase-long');
-    if (this.config.phase === 'work') {
-      this.player.classList.add('phase-work');
-    } else if (this.config.phase === 'shortBreak') {
-      this.player.classList.add('phase-break');
-    } else {
-      this.player.classList.add('phase-long');
+      // Play/Pause icon
+      this.toggleBtn.innerHTML = this._running
+        ? '<i data-lucide="pause"></i>'
+        : '<i data-lucide="play"></i>';
+      this.toggleBtn.title = this._running ? 'Pause' : 'Start';
+
+      // Phase classes
+      this.player.classList.remove('phase-work', 'phase-break', 'phase-long');
+      if (this.config.phase === 'work') {
+        this.player.classList.add('phase-work');
+      } else if (this.config.phase === 'shortBreak') {
+        this.player.classList.add('phase-break');
+      } else {
+        this.player.classList.add('phase-long');
+      }
+
+      // Running state
+      this.player.classList.toggle('running', this._running);
+
+      // Re-create lucide icons only when the controls actually change
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons({ nodes: [this.toggleBtn, this.resetBtn, this.skipBtn] });
+      }
     }
-
-    // Running state
-    this.player.classList.toggle('running', this._running);
 
     // Progress ring
     this._updateProgressRing();
-
-    // Re-create lucide icons
-    if (typeof lucide !== 'undefined') {
-      lucide.createIcons({ nodes: [this.toggleBtn, this.resetBtn, this.skipBtn] });
-    }
   }
 
   _updateProgressRing() {
@@ -270,22 +318,25 @@ export class PomodoroTimer {
     this.skipBtn.addEventListener('click', e => { e.stopPropagation(); this.skip(); });
 
     // Drag to reposition
-    this.pill.addEventListener('mousedown', e => {
-      if (e.button !== 0) return;
+    this.pill.addEventListener('pointerdown', e => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
       if (e.target.closest('button')) return;
       const rect = this.player.getBoundingClientRect();
       this._dragState = {
+        pointerId: e.pointerId,
         startX: e.clientX,
         startY: e.clientY,
         offsetX: e.clientX - rect.left,
         offsetY: e.clientY - rect.top,
         moved: false
       };
+      this.pill.setPointerCapture?.(e.pointerId);
       e.preventDefault();
     });
 
-    document.addEventListener('mousemove', e => {
+    document.addEventListener('pointermove', e => {
       if (!this._dragState) return;
+      if (e.pointerId !== this._dragState.pointerId) return;
       const dx = Math.abs(e.clientX - this._dragState.startX);
       const dy = Math.abs(e.clientY - this._dragState.startY);
       if (dx > 3 || dy > 3) this._dragState.moved = true;
@@ -296,8 +347,9 @@ export class PomodoroTimer {
       this.player.style.bottom = 'auto';
     });
 
-    document.addEventListener('mouseup', () => {
+    const endDrag = e => {
       if (!this._dragState) return;
+      if (e.pointerId !== this._dragState.pointerId) return;
       if (this._dragState.moved) {
         this.config.position = {
           x: parseInt(this.player.style.left, 10),
@@ -305,8 +357,11 @@ export class PomodoroTimer {
         };
         this._saveConfig();
       }
+      try { this.pill.releasePointerCapture?.(this._dragState.pointerId); } catch {}
       this._dragState = null;
-    });
+    };
+    document.addEventListener('pointerup', endDrag);
+    document.addEventListener('pointercancel', endDrag);
   }
 
   _wireSettings() {

@@ -220,7 +220,8 @@
 }
 
 /* ─── Widget Layout Settings ─── */
-#widget-layout-settings {
+#widget-layout-settings,
+#widget-visibility-settings {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -233,17 +234,29 @@
   gap: 8px;
 }
 
-.widget-layout-option {
+.widget-visibility-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.widget-layout-option,
+.widget-visibility-toggle {
   justify-content: center;
   margin-bottom: 0;
   text-align: center;
 }
 
-.widget-layout-option.active {
+.widget-layout-option.active,
+.widget-visibility-toggle.active {
   background: rgba(124, 106, 247, 0.18);
   border-color: rgba(124, 106, 247, 0.45);
   box-shadow: 0 0 0 2px rgba(124, 106, 247, 0.12);
   color: #fff;
+}
+
+.widget-visibility-toggle:not(.active) {
+  opacity: 0.58;
 }
 
 /* ─── Vertical Widget Layout Mode ───
@@ -383,6 +396,7 @@
 #desktop.widget-layout-vertical #pomodoro-time,
 #desktop.widget-layout-vertical #pomodoro-sessions,
 #desktop.widget-layout-vertical #weather-desc,
+#desktop.widget-layout-vertical .weather-updated,
 #desktop.widget-layout-vertical #weather-location {
   max-width: none;
   min-width: 0;

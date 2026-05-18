@@ -96,6 +96,10 @@ textarea {
   display: none !important;
 }
 
+.canopy-widget-disabled {
+  display: none !important;
+}
+
 /* ─── Desktop ─── */
 #desktop {
   position: fixed;
@@ -658,6 +662,7 @@ textarea {
   position: relative;
   white-space: nowrap;
   transition: border-color 0.3s, box-shadow 0.3s, gap 0.35s ease, padding 0.35s ease;
+  touch-action: none;
 }
 
 #music-pill:hover {
@@ -1064,6 +1069,7 @@ textarea {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   white-space: nowrap;
   transition: border-color 0.3s, box-shadow 0.3s, gap 0.35s ease, padding 0.35s ease;
+  touch-action: none;
 }
 
 #pomodoro-pill:hover {
@@ -3233,6 +3239,11 @@ input[type="file"] {
 .deleted-note-color.orange  { background: #ffa726; }
 .deleted-note-color.purple  { background: #ab47bc; }
 .deleted-note-color.white   { background: #bdbdbd; }
+.deleted-note-color.red     { background: #ef5350; }
+.deleted-note-color.teal    { background: #4db6ac; }
+.deleted-note-color.brown   { background: #a1887f; }
+.deleted-note-color.lavender { background: #9575cd; }
+.deleted-note-color.coral   { background: #f08080; }
 
 .deleted-note-title {
   flex: 1;
@@ -3323,6 +3334,7 @@ input[type="file"] {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   white-space: nowrap;
   transition: border-color 0.3s, box-shadow 0.3s, gap 0.35s ease, padding 0.35s ease;
+  touch-action: none;
 }
 
 #weather-pill:hover {
@@ -3382,6 +3394,13 @@ input[type="file"] {
   color: var(--accent);
   padding: 0 4px;
   text-transform: capitalize;
+}
+
+.weather-updated {
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.34);
+  padding: 0 4px;
+  white-space: nowrap;
 }
 
 #weather-details {
@@ -3450,7 +3469,7 @@ input[type="file"] {
 }
 
 /* Collapsed state transitions */
-#weather-desc, #weather-details, #weather-location {
+#weather-desc, #weather-details, #weather-location, .weather-updated {
   transition:
     opacity 0.25s ease,
     max-width 0.35s cubic-bezier(0.4, 0, 0.2, 1),
@@ -3477,6 +3496,26 @@ input[type="file"] {
   flex-direction: column;
   gap: 8px;
   margin-bottom: 10px;
+}
+
+#sticky-notes-search {
+  width: 100%;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  color: var(--text-primary);
+  font-size: 12.5px;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+#sticky-notes-search:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+#sticky-notes-search::placeholder {
+  color: var(--text-muted);
 }
 
 .weather-setting-row {

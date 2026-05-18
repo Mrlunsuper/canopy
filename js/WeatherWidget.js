@@ -8,6 +8,7 @@ import { toast } from './utils.js';
 const WEATHER_CONFIG_KEY = 'canopy_weather_config';
 const WEATHER_CACHE_KEY  = 'canopy_weather_cache';
 const REFRESH_INTERVAL   = 15 * 60 * 1000; // 15 minutes
+const CACHE_TTL          = REFRESH_INTERVAL;
 const GEOCODING_API      = 'https://geocoding-api.open-meteo.com/v1/search';
 const FORECAST_API       = 'https://api.open-meteo.com/v1/forecast';
 
@@ -52,11 +53,14 @@ export class WeatherWidget {
     this.descEl       = document.getElementById('weather-desc');
     this.detailsEl    = document.getElementById('weather-details');
     this.locationEl   = document.getElementById('weather-location');
+    this.updatedEl    = document.getElementById('weather-updated');
     this.refreshBtn   = document.getElementById('weather-refresh');
 
     this.config = this._defaults();
     this._dragState = null;
     this._refreshTimer = null;
+    this._refreshTimeout = null;
+    this._fetchPromise = null;
   }
 
   // ═══════════════════════════════════════════════
@@ -71,13 +75,16 @@ export class WeatherWidget {
     this._wireSettings();
 
     // Try to load cached data first for instant display
-    this._loadCache();
+    const cacheAge = this._loadCache();
 
-    // Then fetch fresh data
-    await this._fetchWeather();
+    // Then fetch fresh data only when the cache is stale or missing
+    const shouldFetch = !this.config.lastData || cacheAge >= CACHE_TTL;
+    if (shouldFetch) {
+      await this._fetchWeather();
+    }
 
-    // Set up auto-refresh
-    this._refreshTimer = setInterval(() => this._fetchWeather(), REFRESH_INTERVAL);
+    // Set up auto-refresh from the actual cache expiry point
+    this._startRefreshTimer(shouldFetch ? REFRESH_INTERVAL : CACHE_TTL - cacheAge);
   }
 
   // ═══════════════════════════════════════════════
@@ -85,6 +92,17 @@ export class WeatherWidget {
   // ═══════════════════════════════════════════════
 
   async _fetchWeather() {
+    if (this._fetchPromise) return this._fetchPromise;
+
+    this._fetchPromise = this._doFetchWeather();
+    try {
+      return await this._fetchPromise;
+    } finally {
+      this._fetchPromise = null;
+    }
+  }
+
+  async _doFetchWeather() {
     try {
       let lat = this.config.latitude;
       let lon = this.config.longitude;
@@ -105,11 +123,6 @@ export class WeatherWidget {
         }
       }
 
-      // Reverse geocode for city name if not set
-      if (!this.config.cityName) {
-        await this._reverseGeocode(lat, lon);
-      }
-
       const url = `${FORECAST_API}?latitude=${lat}&longitude=${lon}`
         + `&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,is_day`
         + `&timezone=auto`;
@@ -117,6 +130,12 @@ export class WeatherWidget {
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
+
+      if (!this.config.cityName && data.timezone) {
+        const parts = data.timezone.split('/');
+        this.config.cityName = parts[parts.length - 1].replace(/_/g, ' ');
+        this._saveConfig();
+      }
 
       if (data.current) {
         this.config.lastData = {
@@ -127,14 +146,29 @@ export class WeatherWidget {
           windSpeed: data.current.wind_speed_10m,
           isDay: data.current.is_day,
           time: data.current.time,
+          updatedAt: Date.now(),
         };
         this._saveCache(this.config.lastData);
         this._render();
+        return true;
       }
     } catch (err) {
       console.warn('Weather fetch failed:', err);
       // Still show cached data if available
     }
+
+    return false;
+  }
+
+  _startRefreshTimer(initialDelay = REFRESH_INTERVAL) {
+    if (this._refreshTimeout) clearTimeout(this._refreshTimeout);
+    if (this._refreshTimer) clearInterval(this._refreshTimer);
+
+    this._refreshTimeout = setTimeout(async () => {
+      this._refreshTimeout = null;
+      await this._fetchWeather();
+      this._refreshTimer = setInterval(() => this._fetchWeather(), REFRESH_INTERVAL);
+    }, Math.max(1000, initialDelay));
   }
 
   _getGeolocation() {
@@ -149,30 +183,6 @@ export class WeatherWidget {
         { timeout: 8000, maximumAge: 600000 }
       );
     });
-  }
-
-  async _reverseGeocode(lat, lon) {
-    try {
-      // Use Open-Meteo's geocoding API to find nearest city
-      const url = `${GEOCODING_API}?latitude=${lat}&longitude=${lon}&count=1`;
-      const res = await fetch(url);
-      // The geocoding API doesn't support reverse geocoding directly,
-      // so we'll use the timezone for a rough location name
-      // Instead, we'll parse the timezone from the forecast response
-      const forecastUrl = `${FORECAST_API}?latitude=${lat}&longitude=${lon}&current=temperature_2m&timezone=auto`;
-      const forecastRes = await fetch(forecastUrl);
-      if (forecastRes.ok) {
-        const data = await forecastRes.json();
-        if (data.timezone) {
-          // Extract city from timezone (e.g. "Asia/Bangkok" → "Bangkok")
-          const parts = data.timezone.split('/');
-          this.config.cityName = parts[parts.length - 1].replace(/_/g, ' ');
-          this._saveConfig();
-        }
-      }
-    } catch {
-      // Silently fail — not critical
-    }
   }
 
   // ═══════════════════════════════════════════════
@@ -213,15 +223,21 @@ export class WeatherWidget {
     try {
       const raw = localStorage.getItem(WEATHER_CACHE_KEY);
       if (raw) {
-        this.config.lastData = JSON.parse(raw);
+        const cached = JSON.parse(raw);
+        this.config.lastData = cached.data || cached;
+        if (cached.savedAt && !this.config.lastData.updatedAt) {
+          this.config.lastData.updatedAt = cached.savedAt;
+        }
         this._render();
+        return Date.now() - (cached.savedAt || this.config.lastData.updatedAt || 0);
       }
     } catch {}
+    return Infinity;
   }
 
   _saveCache(data) {
     try {
-      localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify(data));
+      localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify({ data, savedAt: Date.now() }));
     } catch {}
   }
 
@@ -247,6 +263,16 @@ export class WeatherWidget {
       return `${Math.round(celsius * 9 / 5 + 32)}°F`;
     }
     return `${Math.round(celsius)}°C`;
+  }
+
+  _formatUpdatedTime(timestamp) {
+    if (!timestamp) return '';
+    const diffMinutes = Math.max(0, Math.round((Date.now() - timestamp) / 60000));
+    if (diffMinutes < 1) return 'Updated now';
+    if (diffMinutes === 1) return 'Updated 1 min ago';
+    if (diffMinutes < 60) return `Updated ${diffMinutes} min ago`;
+    const hours = Math.round(diffMinutes / 60);
+    return hours === 1 ? 'Updated 1 hr ago' : `Updated ${hours} hr ago`;
   }
 
   _applyWeatherMood(data) {
@@ -303,6 +329,7 @@ export class WeatherWidget {
       `;
 
       this.locationEl.textContent = this.config.cityName || '';
+      if (this.updatedEl) this.updatedEl.textContent = this._formatUpdatedTime(d.updatedAt);
       this.player.classList.remove('loading');
     } else {
       this._applyWeatherMood(null);
@@ -311,6 +338,7 @@ export class WeatherWidget {
       this.descEl.textContent = 'Loading...';
       this.detailsEl.innerHTML = '';
       this.locationEl.textContent = '';
+      if (this.updatedEl) this.updatedEl.textContent = '';
       this.player.classList.add('loading');
     }
 
@@ -329,28 +357,32 @@ export class WeatherWidget {
     this.refreshBtn.addEventListener('click', async e => {
       e.stopPropagation();
       this.refreshBtn.classList.add('spinning');
-      await this._fetchWeather();
+      const updated = await this._fetchWeather();
+      if (updated) this._startRefreshTimer(REFRESH_INTERVAL);
       setTimeout(() => this.refreshBtn.classList.remove('spinning'), 600);
-      toast('Weather updated', 'success');
+      toast(updated ? 'Weather updated' : 'Weather update failed', updated ? 'success' : 'error');
     });
 
     // Drag to reposition
-    this.pill.addEventListener('mousedown', e => {
-      if (e.button !== 0) return;
+    this.pill.addEventListener('pointerdown', e => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
       if (e.target.closest('button')) return;
       const rect = this.player.getBoundingClientRect();
       this._dragState = {
+        pointerId: e.pointerId,
         startX: e.clientX,
         startY: e.clientY,
         offsetX: e.clientX - rect.left,
         offsetY: e.clientY - rect.top,
         moved: false
       };
+      this.pill.setPointerCapture?.(e.pointerId);
       e.preventDefault();
     });
 
-    document.addEventListener('mousemove', e => {
+    document.addEventListener('pointermove', e => {
       if (!this._dragState) return;
+      if (e.pointerId !== this._dragState.pointerId) return;
       const dx = Math.abs(e.clientX - this._dragState.startX);
       const dy = Math.abs(e.clientY - this._dragState.startY);
       if (dx > 3 || dy > 3) this._dragState.moved = true;
@@ -361,8 +393,9 @@ export class WeatherWidget {
       this.player.style.bottom = 'auto';
     });
 
-    document.addEventListener('mouseup', () => {
+    const endDrag = e => {
       if (!this._dragState) return;
+      if (e.pointerId !== this._dragState.pointerId) return;
       if (this._dragState.moved) {
         this.config.position = {
           x: parseInt(this.player.style.left, 10),
@@ -370,8 +403,11 @@ export class WeatherWidget {
         };
         this._saveConfig();
       }
+      try { this.pill.releasePointerCapture?.(this._dragState.pointerId); } catch {}
       this._dragState = null;
-    });
+    };
+    document.addEventListener('pointerup', endDrag);
+    document.addEventListener('pointercancel', endDrag);
 
     // Toggle temperature unit on click
     this.tempEl.addEventListener('click', e => {

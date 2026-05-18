@@ -25,6 +25,7 @@ export class MusicPlayer {
     this.audio  = document.getElementById('music-audio');
     this._seekDragging = false;
     this._dragState = null;
+    this._volumeSaveTimer = null;
   }
 
   async init() {
@@ -108,7 +109,7 @@ export class MusicPlayer {
     this.config.volume = v;
     this.audio.volume = v / 100;
     this.slider.value = v;
-    this._saveConfig();
+    this._queueSaveConfig();
   }
 
   seekTo(percent) {
@@ -281,6 +282,11 @@ export class MusicPlayer {
   }
 
   _saveConfig() {
+    if (this._volumeSaveTimer) {
+      clearTimeout(this._volumeSaveTimer);
+      this._volumeSaveTimer = null;
+    }
+
     const data = {
       currentIndex: this.config.currentIndex,
       volume: this.config.volume,
@@ -298,6 +304,14 @@ export class MusicPlayer {
         localStorage.setItem(MUSIC_CONFIG_KEY, JSON.stringify(data));
       } catch {}
     }
+  }
+
+  _queueSaveConfig() {
+    if (this._volumeSaveTimer) clearTimeout(this._volumeSaveTimer);
+    this._volumeSaveTimer = setTimeout(() => {
+      this._volumeSaveTimer = null;
+      this._saveConfig();
+    }, 300);
   }
 
   // ═══════════════════════════════════════════════
@@ -566,22 +580,25 @@ export class MusicPlayer {
     this.repeatBtn.addEventListener('click', e => { e.stopPropagation(); this.cycleRepeat(); });
 
     // Drag to reposition
-    this.pill.addEventListener('mousedown', e => {
-      if (e.button !== 0) return;
+    this.pill.addEventListener('pointerdown', e => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
       if (e.target.closest('button') || e.target.closest('input') || e.target.closest('#music-progress')) return;
       const rect = this.player.getBoundingClientRect();
       this._dragState = {
+        pointerId: e.pointerId,
         startX: e.clientX,
         startY: e.clientY,
         offsetX: e.clientX - rect.left,
         offsetY: e.clientY - rect.top,
         moved: false
       };
+      this.pill.setPointerCapture?.(e.pointerId);
       e.preventDefault();
     });
 
-    document.addEventListener('mousemove', e => {
+    document.addEventListener('pointermove', e => {
       if (!this._dragState) return;
+      if (e.pointerId !== this._dragState.pointerId) return;
       const dx = Math.abs(e.clientX - this._dragState.startX);
       const dy = Math.abs(e.clientY - this._dragState.startY);
       if (dx > 3 || dy > 3) this._dragState.moved = true;
@@ -592,8 +609,9 @@ export class MusicPlayer {
       this.player.style.bottom = 'auto';
     });
 
-    document.addEventListener('mouseup', () => {
+    const endDrag = e => {
       if (!this._dragState) return;
+      if (e.pointerId !== this._dragState.pointerId) return;
       if (this._dragState.moved) {
         this.config.position = {
           x: parseInt(this.player.style.left, 10),
@@ -603,12 +621,17 @@ export class MusicPlayer {
         this._dragJustHappened = true;
         setTimeout(() => { this._dragJustHappened = false; }, 100);
       }
+      try { this.pill.releasePointerCapture?.(this._dragState.pointerId); } catch {}
       this._dragState = null;
-    });
+    };
+    document.addEventListener('pointerup', endDrag);
+    document.addEventListener('pointercancel', endDrag);
 
     this.slider.addEventListener('input', e => {
       this.setVolume(e.target.value);
     });
+
+    window.addEventListener('pagehide', () => this._saveConfig());
 
     this.progressBar.addEventListener('click', e => {
       e.stopPropagation();

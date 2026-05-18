@@ -65,6 +65,7 @@
         <div class="widget-body">
           <span id="weather-desc">Loading...</span>
           <span id="weather-details"></span>
+          <span id="weather-updated" class="weather-updated"></span>
         </div>
         <div class="widget-actions">
           <button id="weather-refresh" title="Refresh weather"><i data-lucide="refresh-cw"></i></button>
@@ -278,6 +279,26 @@
                 </button>
               </div>
             </div>
+            <div id="widget-visibility-settings">
+              <span class="settings-info">Show or hide floating widgets.</span>
+              <div class="widget-visibility-grid" role="group" aria-label="Widget visibility">
+                <button class="settings-btn compact widget-visibility-toggle" data-widget-id="clock" type="button">
+                  <i data-lucide="clock"></i> Clock
+                </button>
+                <button class="settings-btn compact widget-visibility-toggle" data-widget-id="music" type="button">
+                  <i data-lucide="music"></i> Music
+                </button>
+                <button class="settings-btn compact widget-visibility-toggle" data-widget-id="weather" type="button">
+                  <i data-lucide="cloud-sun"></i> Weather
+                </button>
+                <button class="settings-btn compact widget-visibility-toggle" data-widget-id="pomodoro" type="button">
+                  <i data-lucide="timer"></i> Pomodoro
+                </button>
+                <button class="settings-btn compact widget-visibility-toggle" data-widget-id="notes" type="button">
+                  <i data-lucide="sticky-note"></i> Notes
+                </button>
+              </div>
+            </div>
           </section>
         </div>
 
@@ -347,6 +368,10 @@
         </div>
 
         <div id="settings-notes" class="settings-content-panel">
+          <section class="settings-section">
+            <h3><i data-lucide="search"></i> Search Notes</h3>
+            <input type="text" id="sticky-notes-search" placeholder="Filter notes and deleted notes..." autocomplete="off" />
+          </section>
           <section class="settings-section">
             <h3><i data-lucide="trash-2"></i> Recently Deleted Notes</h3>
             <div id="deleted-notes-container"></div>
