@@ -279,7 +279,8 @@ textarea {
   justify-content: center;
   overflow: visible;
   transition: box-shadow var(--transition), border-color var(--transition);
-  backdrop-filter: blur(8px);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .desktop-icon:hover .icon-img-wrap {
