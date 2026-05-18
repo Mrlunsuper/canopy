@@ -3,7 +3,7 @@
    Chrome bookmark import functionality
    ============================================================ */
 
-import { uid, getFaviconUrl, toast } from './utils.js';
+import { uid, getFaviconUrl, toast, normalizeShortcutUrl } from './utils.js';
 
 export class BookmarkImporter {
   /**
@@ -99,6 +99,9 @@ export class BookmarkImporter {
         container.appendChild(folderEl);
 
       } else if (node.url) {
+        const safeUrl = normalizeShortcutUrl(node.url);
+        if (!safeUrl) return;
+
         // it's a bookmark
         const item = document.createElement('div');
         item.className = 'bm-item';
@@ -106,17 +109,17 @@ export class BookmarkImporter {
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.dataset.bmId    = node.id;
-        checkbox.dataset.bmUrl   = node.url;
+        checkbox.dataset.bmUrl   = safeUrl;
         checkbox.dataset.bmTitle = node.title || node.url;
 
         const img = document.createElement('img');
-        img.src = getFaviconUrl(node.url) || '';
+        img.src = getFaviconUrl(safeUrl) || '';
         img.alt = '';
         img.onerror = () => { img.style.display = 'none'; };
 
         const label = document.createElement('span');
-        label.textContent = node.title || node.url;
-        label.title = node.url;
+        label.textContent = node.title || safeUrl;
+        label.title = safeUrl;
 
         item.appendChild(checkbox);
         item.appendChild(img);
@@ -145,7 +148,8 @@ export class BookmarkImporter {
 
     let added = 0;
     checked.forEach(cb => {
-      const url   = cb.dataset.bmUrl;
+      const url   = normalizeShortcutUrl(cb.dataset.bmUrl);
+      if (!url) return;
       const title = cb.dataset.bmTitle;
       // skip duplicates
       if (this.storage.data.items.some(i => i.url === url)) return;

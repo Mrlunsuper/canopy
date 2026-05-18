@@ -52,7 +52,6 @@ export class WeatherWidget {
     this.descEl       = document.getElementById('weather-desc');
     this.detailsEl    = document.getElementById('weather-details');
     this.locationEl   = document.getElementById('weather-location');
-    this.collapseBtn  = document.getElementById('weather-collapse');
     this.refreshBtn   = document.getElementById('weather-refresh');
 
     this.config = this._defaults();
@@ -186,7 +185,6 @@ export class WeatherWidget {
       longitude: null,
       cityName: '',
       position: null,
-      collapsed: false,
       lastData: null,
       unit: 'C',  // 'C' or 'F'
     };
@@ -316,16 +314,9 @@ export class WeatherWidget {
       this.player.classList.add('loading');
     }
 
-    // Collapsed state
-    this.player.classList.toggle('collapsed', this.config.collapsed);
-    this.collapseBtn.innerHTML = this.config.collapsed
-      ? '<i data-lucide="chevron-up"></i>'
-      : '<i data-lucide="chevron-down"></i>';
-    this.collapseBtn.title = this.config.collapsed ? 'Expand' : 'Collapse';
-
     // Re-create lucide icons
     if (typeof lucide !== 'undefined') {
-      lucide.createIcons({ nodes: [this.detailsEl, this.collapseBtn, this.refreshBtn] });
+      lucide.createIcons({ nodes: [this.detailsEl, this.refreshBtn] });
     }
   }
 
@@ -334,14 +325,6 @@ export class WeatherWidget {
   // ═══════════════════════════════════════════════
 
   _wireEvents() {
-    // Collapse toggle
-    this.collapseBtn.addEventListener('click', e => {
-      e.stopPropagation();
-      this.config.collapsed = !this.config.collapsed;
-      this._saveConfig();
-      this._render();
-    });
-
     // Manual refresh
     this.refreshBtn.addEventListener('click', async e => {
       e.stopPropagation();

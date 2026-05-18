@@ -269,7 +269,11 @@ export class StickyNotesManager {
     content.addEventListener('paste', e => {
       e.preventDefault();
       const text = (e.clipboardData || window.clipboardData).getData('text/plain');
-      document.execCommand('insertText', false, text);
+      const sel = window.getSelection();
+      if (!sel.rangeCount) return;
+      sel.deleteFromDocument();
+      sel.getRangeAt(0).insertNode(document.createTextNode(text));
+      sel.collapseToEnd();
     });
     content.addEventListener('focus', () => this._focusNote(note.id, el));
     el.addEventListener('mousedown', e => {

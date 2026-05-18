@@ -46,7 +46,6 @@
         <div class="widget-meta">
           <span id="music-time">--:-- / --:--</span>
           <input type="range" id="music-volume" min="0" max="100" value="75" />
-          <button id="music-collapse" title="Collapse"><i data-lucide="chevron-down"></i></button>
         </div>
         <div id="music-progress">
           <div id="music-progress-fill"></div>
@@ -69,7 +68,6 @@
         </div>
         <div class="widget-actions">
           <button id="weather-refresh" title="Refresh weather"><i data-lucide="refresh-cw"></i></button>
-          <button id="weather-collapse" title="Collapse"><i data-lucide="chevron-down"></i></button>
         </div>
       </div>
     </div>
@@ -96,7 +94,6 @@
           <button id="pomodoro-toggle" title="Start"><i data-lucide="play"></i></button>
           <button id="pomodoro-skip" title="Skip phase"><i data-lucide="skip-forward"></i></button>
           <button id="pomodoro-reset" title="Reset timer"><i data-lucide="rotate-ccw"></i></button>
-          <button id="pomodoro-collapse" title="Collapse"><i data-lucide="chevron-down"></i></button>
         </div>
       </div>
     </div>
@@ -195,133 +192,177 @@
       <button id="settings-close"><i data-lucide="x"></i></button>
     </div>
     <div id="settings-body">
-      <section class="settings-section">
-        <h3><i data-lucide="image"></i> Wallpaper</h3>
-        <div id="wallpaper-presets">
-          <div class="wp-preset active" data-wp="default" title="Nebula"></div>
-          <div class="wp-preset" data-wp="aurora" title="Aurora"></div>
-          <div class="wp-preset" data-wp="sunset" title="Ocean Night"></div>
-          <div class="wp-preset" data-wp="rose" title="Violet"></div>
-          <div class="wp-preset" data-wp="forest" title="Forest"></div>
-          <div class="wp-preset" data-wp="desert" title="Ember"></div>
-          <div class="wp-preset" data-wp="midnight" title="Midnight"></div>
-          <div class="wp-preset" data-wp="neon" title="Neon Abyss"></div>
-          <div class="wp-preset" data-wp="candy" title="Candy"></div>
-          <div class="wp-preset" data-wp="arctic" title="Arctic"></div>
-          <div class="wp-preset" data-wp="lava" title="Lava"></div>
-          <div class="wp-preset" data-wp="teal" title="Teal Deep"></div>
-          <div class="wp-preset" data-wp="sakura" title="Sakura"></div>
-          <div class="wp-preset" data-wp="cosmic" title="Cosmic Blue"></div>
-          <div class="wp-preset" data-wp="copper" title="Copper"></div>
-          <div class="wp-preset" data-wp="slate" title="Slate"></div>
-          <div class="wp-preset" data-wp="jungle" title="Jungle"></div>
-          <div class="wp-preset" data-wp="galaxy" title="Galaxy"></div>
-        </div>
-        <div id="wallpaper-upload-row">
-          <label for="wallpaper-upload" class="upload-label"><i data-lucide="upload"></i> Upload wallpaper</label>
-          <input type="file" id="wallpaper-upload" accept="image/*" />
-        </div>
-      </section>
-
-      <section class="settings-section">
-        <h3><i data-lucide="globe"></i> Wallhaven</h3>
-        <button id="btn-open-wallhaven" class="settings-btn"><i data-lucide="search"></i> Search Wallhaven.cc</button>
-      </section>
-
-      <section class="settings-section">
-        <h3><i data-lucide="database"></i> Data</h3>
-        <button id="btn-export-data" class="settings-btn"><i data-lucide="download"></i> Export JSON data</button>
-        <label for="import-data-file" class="settings-btn"><i data-lucide="upload"></i> Import JSON data</label>
-        <input type="file" id="import-data-file" accept=".json" />
-        <button id="btn-reset-data" class="settings-btn danger"><i data-lucide="trash-2"></i> Reset all data</button>
-      </section>
-
-      <section class="settings-section">
-        <h3><i data-lucide="layout-dashboard"></i> Widgets</h3>
-        <div id="widget-layout-settings">
-          <span class="settings-info">Choose how widget controls are arranged.</span>
-          <div class="widget-layout-toggle" role="group" aria-label="Widget layout">
-            <button class="settings-btn compact widget-layout-option" data-widget-layout="compact" type="button">
-              <i data-lucide="panel-top"></i> Compact
-            </button>
-            <button class="settings-btn compact widget-layout-option" data-widget-layout="card" type="button">
-              <i data-lucide="panel-left"></i> Card
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section class="settings-section">
-        <h3><i data-lucide="music"></i> Music Player</h3>
-        <div id="music-r2-config">
-          <input type="url" id="music-r2-url" placeholder="R2 Bucket URL (e.g. https://pub-xxx.r2.dev)" />
-          <button id="music-sync-btn" class="settings-btn"><i data-lucide="refresh-cw"></i> Sync from R2</button>
-        </div>
-        <div id="music-track-list"></div>
-        <div id="music-add-track">
-          <input type="text" id="music-new-name" placeholder="Track name" />
-          <input type="url" id="music-new-url" placeholder="MP3 URL or relative path" />
-          <button id="music-add-btn" class="settings-btn"><i data-lucide="plus"></i> Add track</button>
-        </div>
-        <button id="music-reset-defaults" class="settings-btn">Reset to defaults</button>
-      </section>
-
-      <section class="settings-section">
-        <h3><i data-lucide="timer"></i> Pomodoro Timer</h3>
-        <div id="pomodoro-settings">
-          <div class="pomodoro-setting-row">
-            <label for="pomodoro-work-min">Focus duration</label>
-            <div class="pomodoro-input-group">
-              <input type="number" id="pomodoro-work-min" min="1" max="120" value="25" />
-              <span class="pomodoro-unit">min</span>
+      <nav id="settings-sidebar">
+        <input type="text" id="settings-search" placeholder="Search settings..." autocomplete="off" />
+        <button class="settings-nav-item active" data-section="appearance">
+          <i data-lucide="image"></i> Appearance
+        </button>
+        <button class="settings-nav-item" data-section="data">
+          <i data-lucide="database"></i> Data
+        </button>
+        <button class="settings-nav-item" data-section="widgets">
+          <i data-lucide="layout-dashboard"></i> Widgets
+        </button>
+        <button class="settings-nav-item" data-section="music">
+          <i data-lucide="music"></i> Music
+        </button>
+        <button class="settings-nav-item" data-section="timer">
+          <i data-lucide="timer"></i> Timer
+        </button>
+        <button class="settings-nav-item" data-section="weather">
+          <i data-lucide="cloud-sun"></i> Weather
+        </button>
+        <button class="settings-nav-item" data-section="notes">
+          <i data-lucide="trash-2"></i> Notes
+        </button>
+        <button class="settings-nav-item" data-section="about">
+          <i data-lucide="info"></i> About
+        </button>
+      </nav>
+      <div id="settings-content">
+        <div id="settings-appearance" class="settings-content-panel active">
+          <section class="settings-section">
+            <h3><i data-lucide="image"></i> Wallpaper</h3>
+            <div id="wallpaper-presets">
+              <div class="wp-preset active" data-wp="default" title="Nebula"></div>
+              <div class="wp-preset" data-wp="aurora" title="Aurora"></div>
+              <div class="wp-preset" data-wp="sunset" title="Ocean Night"></div>
+              <div class="wp-preset" data-wp="rose" title="Violet"></div>
+              <div class="wp-preset" data-wp="forest" title="Forest"></div>
+              <div class="wp-preset" data-wp="desert" title="Ember"></div>
+              <div class="wp-preset" data-wp="midnight" title="Midnight"></div>
+              <div class="wp-preset" data-wp="neon" title="Neon Abyss"></div>
+              <div class="wp-preset" data-wp="candy" title="Candy"></div>
+              <div class="wp-preset" data-wp="arctic" title="Arctic"></div>
+              <div class="wp-preset" data-wp="lava" title="Lava"></div>
+              <div class="wp-preset" data-wp="teal" title="Teal Deep"></div>
+              <div class="wp-preset" data-wp="sakura" title="Sakura"></div>
+              <div class="wp-preset" data-wp="cosmic" title="Cosmic Blue"></div>
+              <div class="wp-preset" data-wp="copper" title="Copper"></div>
+              <div class="wp-preset" data-wp="slate" title="Slate"></div>
+              <div class="wp-preset" data-wp="jungle" title="Jungle"></div>
+              <div class="wp-preset" data-wp="galaxy" title="Galaxy"></div>
             </div>
-          </div>
-          <div class="pomodoro-setting-row">
-            <label for="pomodoro-short-min">Short break</label>
-            <div class="pomodoro-input-group">
-              <input type="number" id="pomodoro-short-min" min="1" max="60" value="5" />
-              <span class="pomodoro-unit">min</span>
+            <div id="wallpaper-upload-row">
+              <label for="wallpaper-upload" class="upload-label"><i data-lucide="upload"></i> Upload wallpaper</label>
+              <input type="file" id="wallpaper-upload" accept="image/*" />
             </div>
-          </div>
-          <div class="pomodoro-setting-row">
-            <label for="pomodoro-long-min">Long break</label>
-            <div class="pomodoro-input-group">
-              <input type="number" id="pomodoro-long-min" min="1" max="60" value="15" />
-              <span class="pomodoro-unit">min</span>
-            </div>
-          </div>
+          </section>
+          <section class="settings-section">
+            <h3><i data-lucide="globe"></i> Wallhaven</h3>
+            <button id="btn-open-wallhaven" class="settings-btn"><i data-lucide="search"></i> Search Wallhaven.cc</button>
+          </section>
         </div>
-        <button id="pomodoro-reset-sessions" class="settings-btn"><i data-lucide="rotate-ccw"></i> Reset session count</button>
-      </section>
 
-      <section class="settings-section">
-        <h3><i data-lucide="cloud-sun"></i> Weather</h3>
-        <div id="weather-settings">
-          <div class="weather-setting-row">
-            <label for="weather-city-input">City</label>
-            <div class="weather-input-group">
-              <input type="text" id="weather-city-input" placeholder="Search city..." />
-              <button id="weather-city-search" class="settings-btn compact"><i data-lucide="search"></i></button>
-            </div>
-          </div>
-          <div class="weather-setting-row">
-            <label>Temperature unit</label>
-            <button id="weather-unit-toggle" class="settings-btn compact">°C</button>
-          </div>
+        <div id="settings-data" class="settings-content-panel">
+          <section class="settings-section">
+            <h3><i data-lucide="database"></i> Data</h3>
+            <button id="btn-export-data" class="settings-btn"><i data-lucide="download"></i> Export JSON data</button>
+            <label for="import-data-file" class="settings-btn"><i data-lucide="upload"></i> Import JSON data</label>
+            <input type="file" id="import-data-file" accept=".json" />
+            <button id="btn-reset-data" class="settings-btn danger"><i data-lucide="trash-2"></i> Reset all data</button>
+          </section>
         </div>
-      </section>
 
-      <section class="settings-section">
-        <h3><i data-lucide="trash-2"></i> Recently Deleted Notes</h3>
-        <div id="deleted-notes-container"></div>
-      </section>
+        <div id="settings-widgets" class="settings-content-panel">
+          <section class="settings-section">
+            <h3><i data-lucide="layout-dashboard"></i> Widgets</h3>
+            <div id="widget-layout-settings">
+              <span class="settings-info">Choose how widget controls are arranged.</span>
+              <div class="widget-layout-toggle" role="group" aria-label="Widget layout">
+                <button class="settings-btn compact widget-layout-option" data-widget-layout="compact" type="button">
+                  <i data-lucide="panel-top"></i> Compact
+                </button>
+                <button class="settings-btn compact widget-layout-option" data-widget-layout="card" type="button">
+                  <i data-lucide="panel-left"></i> Card
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
 
-      <section class="settings-section">
-        <h3><i data-lucide="info"></i> Information</h3>
-        <p class="settings-info">Canopy v1.1.0</p>
-        <p class="settings-info">Drag & drop icons to arrange layout.</p>
-        <p class="settings-info">Right-click to add shortcut or folder.</p>
-      </section>
+        <div id="settings-music" class="settings-content-panel">
+          <section class="settings-section">
+            <h3><i data-lucide="music"></i> Music Player</h3>
+            <div id="music-r2-config">
+              <button id="music-sync-btn" class="settings-btn"><i data-lucide="refresh-cw"></i> Sync from R2</button>
+            </div>
+            <div id="music-track-list"></div>
+            <div id="music-add-track">
+              <input type="text" id="music-new-name" placeholder="Track name" />
+              <input type="url" id="music-new-url" placeholder="MP3 URL" />
+              <button id="music-add-btn" class="settings-btn"><i data-lucide="plus"></i> Add track</button>
+            </div>
+            <button id="music-reset-defaults" class="settings-btn">Reset to defaults</button>
+          </section>
+        </div>
+
+        <div id="settings-timer" class="settings-content-panel">
+          <section class="settings-section">
+            <h3><i data-lucide="timer"></i> Pomodoro Timer</h3>
+            <div id="pomodoro-settings">
+              <div class="pomodoro-setting-row">
+                <label for="pomodoro-work-min">Focus duration</label>
+                <div class="pomodoro-input-group">
+                  <input type="number" id="pomodoro-work-min" min="1" max="120" value="25" />
+                  <span class="pomodoro-unit">min</span>
+                </div>
+              </div>
+              <div class="pomodoro-setting-row">
+                <label for="pomodoro-short-min">Short break</label>
+                <div class="pomodoro-input-group">
+                  <input type="number" id="pomodoro-short-min" min="1" max="60" value="5" />
+                  <span class="pomodoro-unit">min</span>
+                </div>
+              </div>
+              <div class="pomodoro-setting-row">
+                <label for="pomodoro-long-min">Long break</label>
+                <div class="pomodoro-input-group">
+                  <input type="number" id="pomodoro-long-min" min="1" max="60" value="15" />
+                  <span class="pomodoro-unit">min</span>
+                </div>
+              </div>
+            </div>
+            <button id="pomodoro-reset-sessions" class="settings-btn"><i data-lucide="rotate-ccw"></i> Reset session count</button>
+          </section>
+        </div>
+
+        <div id="settings-weather" class="settings-content-panel">
+          <section class="settings-section">
+            <h3><i data-lucide="cloud-sun"></i> Weather</h3>
+            <div id="weather-settings">
+              <div class="weather-setting-row">
+                <label for="weather-city-input">City</label>
+                <div class="weather-input-group">
+                  <input type="text" id="weather-city-input" placeholder="Search city..." />
+                  <button id="weather-city-search" class="settings-btn compact"><i data-lucide="search"></i></button>
+                </div>
+              </div>
+              <div class="weather-setting-row">
+                <label>Temperature unit</label>
+                <button id="weather-unit-toggle" class="settings-btn compact">°C</button>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div id="settings-notes" class="settings-content-panel">
+          <section class="settings-section">
+            <h3><i data-lucide="trash-2"></i> Recently Deleted Notes</h3>
+            <div id="deleted-notes-container"></div>
+          </section>
+        </div>
+
+        <div id="settings-about" class="settings-content-panel">
+          <section class="settings-section">
+            <h3><i data-lucide="info"></i> About Canopy</h3>
+            <p class="settings-info">Version 2.0.0</p>
+            <p class="settings-info">A desktop-style new tab page with shortcuts, folders, and widgets.</p>
+            <p class="settings-info">Features: drag & drop, bookmark import, wallpapers, clock, weather, Pomodoro timer, sticky notes, music player, and command palette.</p>
+            <p class="settings-info">Built with vanilla JS — no frameworks, no build step.</p>
+          </section>
+        </div>
+      </div>
     </div>
   </div>
 

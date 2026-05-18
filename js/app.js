@@ -3,8 +3,9 @@
    Application orchestrator — wires all modules together
    ============================================================ */
 
-import { snapToGrid, toast } from './utils.js';
+import { snapToGrid, toast, uid, normalizeShortcutUrl, normalizeImageUrl } from './utils.js';
 import { StorageManager }     from './StorageManager.js';
+import { FaviconCache }       from './FaviconCache.js';
 import { WallpaperManager }   from './WallpaperManager.js';
 import { WallhavenManager }   from './WallhavenManager.js';
 import { DesktopRenderer }    from './DesktopRenderer.js';
@@ -25,6 +26,7 @@ class CanopyApp {
   constructor() {
     // ── Data layer ──
     this.storage   = new StorageManager();
+    this.faviconCache = new FaviconCache();
     this.wallpaper = new WallpaperManager(this.storage);
 
     // ── Drag & drop (needs render callback — set after renderer) ──
@@ -37,6 +39,7 @@ class CanopyApp {
     this.renderer = new DesktopRenderer(
       this.storage,
       this.dragDrop,
+      this.faviconCache,
       item => this._openItem(item),          // onIconOpen
       (x, y, item) => this._onIconContext(x, y, item)  // onIconContext
     );
@@ -81,6 +84,9 @@ class CanopyApp {
   async init() {
     // Load data
     await this.storage.loadData();
+
+    // Load favicon cache
+    await this.faviconCache.init();
 
     // Load and apply wallpaper
     const wp = await this.storage.loadWallpaper();
@@ -140,7 +146,12 @@ class CanopyApp {
     if (item.type === 'folder') {
       this.modals.openFolderOverlay(item);
     } else if (item.url) {
-      window.location.href = item.url;
+      const safeUrl = normalizeShortcutUrl(item.url);
+      if (!safeUrl) {
+        toast('Blocked unsafe shortcut URL', 'error');
+        return;
+      }
+      window.location.href = safeUrl;
     }
   }
 
@@ -217,7 +228,13 @@ class CanopyApp {
     const reader = new FileReader();
     reader.onload = e => {
       try {
-        this.storage.data = JSON.parse(e.target.result);
+        const imported = this._sanitizeImportedData(JSON.parse(e.target.result));
+        if (!imported) {
+          toast('Invalid backup file', 'error');
+          return;
+        }
+
+        this.storage.data = imported;
         this.storage.saveData();
         this.renderer.render();
         toast('Data imported ✓', 'success');
@@ -226,6 +243,99 @@ class CanopyApp {
       }
     };
     reader.readAsText(file);
+  }
+
+  /** @private */
+  _sanitizeImportedData(raw) {
+    if (!raw || typeof raw !== 'object' || !Array.isArray(raw.items)) return null;
+
+    const seenIds = new Set();
+    const items = [];
+    raw.items.forEach(item => {
+      const sanitized = this._sanitizeImportedItem(item, true, seenIds, 0);
+      if (sanitized) items.push(sanitized);
+    });
+
+    return { items };
+  }
+
+  /** @private */
+  _sanitizeImportedItem(item, isTopLevel, seenIds, depth) {
+    if (!item || typeof item !== 'object' || depth > 5) return null;
+
+    const id = this._sanitizeImportedId(item.id, seenIds);
+    const title = typeof item.title === 'string' ? item.title.trim().slice(0, 200) : '';
+
+    if (item.type === 'folder') {
+      const children = Array.isArray(item.children)
+        ? item.children
+          .map(child => this._sanitizeImportedItem(child, false, seenIds, depth + 1))
+          .filter(Boolean)
+        : [];
+
+      const folder = {
+        id,
+        type: 'folder',
+        title: title || 'Folder',
+        emoji: this._sanitizeImportedIconName(item.emoji),
+        url: null,
+        icon: null,
+        children,
+      };
+      if (isTopLevel) folder.position = this._sanitizeImportedPosition(item.position);
+      return folder;
+    }
+
+    if (item.type === 'shortcut') {
+      const url = normalizeShortcutUrl(item.url);
+      if (!url) return null;
+
+      const shortcut = {
+        id,
+        type: 'shortcut',
+        title: title || new URL(url).hostname.replace('www.', ''),
+        url,
+        icon: normalizeImageUrl(item.icon) || null,
+        children: [],
+      };
+      if (isTopLevel) shortcut.position = this._sanitizeImportedPosition(item.position);
+      return shortcut;
+    }
+
+    return null;
+  }
+
+  /** @private */
+  _sanitizeImportedId(id, seenIds) {
+    const candidate = typeof id === 'string' ? id.trim().slice(0, 80) : '';
+    if (candidate && !seenIds.has(candidate)) {
+      seenIds.add(candidate);
+      return candidate;
+    }
+
+    let nextId;
+    do {
+      nextId = uid();
+    } while (seenIds.has(nextId));
+    seenIds.add(nextId);
+    return nextId;
+  }
+
+  /** @private */
+  _sanitizeImportedIconName(iconName) {
+    return typeof iconName === 'string' && /^[a-z0-9-]{1,50}$/i.test(iconName)
+      ? iconName
+      : 'folder';
+  }
+
+  /** @private */
+  _sanitizeImportedPosition(position) {
+    const x = Number(position?.x);
+    const y = Number(position?.y);
+    return {
+      x: Number.isFinite(x) ? Math.max(0, Math.round(x)) : 0,
+      y: Number.isFinite(y) ? Math.max(0, Math.round(y)) : 0,
+    };
   }
 
   /** @private */
@@ -249,7 +359,52 @@ class CanopyApp {
     panel.addEventListener('animationend', () => {
       panel.classList.remove('closing');
       panel.classList.add('hidden');
+      this._showSettingsSection('appearance');
     }, { once: true });
+  }
+
+  /** @private */
+  _showSettingsSection(section) {
+    document.querySelectorAll('.settings-nav-item').forEach(b => {
+      b.classList.toggle('active', b.dataset.section === section);
+    });
+    document.querySelectorAll('.settings-content-panel').forEach(p => {
+      p.classList.toggle('active', p.id === `settings-${section}`);
+    });
+  }
+
+  /** @private */
+  _initSettingsNavigation() {
+    document.querySelectorAll('.settings-nav-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this._showSettingsSection(btn.dataset.section);
+      });
+    });
+    if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [document.getElementById('settings-sidebar')] });
+  }
+
+  /** @private */
+  _initSettingsSearch() {
+    const searchInput = document.getElementById('settings-search');
+    if (!searchInput) return;
+
+    searchInput.addEventListener('input', () => {
+      const query = searchInput.value.toLowerCase().trim();
+      const navItems = document.querySelectorAll('.settings-nav-item');
+
+      navItems.forEach(btn => {
+        const label = btn.textContent.trim().toLowerCase();
+        const match = !query || label.includes(query);
+        btn.classList.toggle('hidden', !match);
+      });
+
+      if (query) {
+        const visible = [...navItems].filter(b => !b.classList.contains('hidden'));
+        if (visible.length === 1) {
+          this._showSettingsSection(visible[0].dataset.section);
+        }
+      }
+    });
   }
 
   // ═══════════════════════════════════════════════
@@ -474,6 +629,10 @@ class CanopyApp {
 
     // ── Keyboard shortcuts ──
     this._wireKeyboardShortcuts();
+
+    // ── Settings sidebar navigation ──
+    this._initSettingsNavigation();
+    this._initSettingsSearch();
   }
 
   /** @private */

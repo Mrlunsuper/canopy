@@ -6,6 +6,7 @@
 import { DAYS, MONTHS, pad2 } from './utils.js';
 
 const STORAGE_KEY = 'canopy_clock_position';
+const SIZE_KEY = 'canopy_clock_size';
 
 export class ClockWidget {
   constructor() {
@@ -15,8 +16,84 @@ export class ClockWidget {
     this.dateEl = document.getElementById('clock-date');
     this._intervalId = null;
     this._dragState = null;
+    this._resizeState = null;
+    this._baseTimeSize = 80;
+    this._baseDateSize = 14;
+    this._scale = 1;
     this._restorePosition();
+    this._restoreSize();
     this._initDrag();
+    this._initResize();
+  }
+
+  _restoreSize() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(SIZE_KEY));
+      if (saved && typeof saved.scale === 'number' && saved.scale > 0) {
+        this._scale = saved.scale;
+        this._applySize();
+      }
+    } catch {}
+  }
+
+  _saveSize() {
+    localStorage.setItem(SIZE_KEY, JSON.stringify({ scale: this._scale }));
+  }
+
+  _applySize() {
+    this.timeEl.style.fontSize = `${this._baseTimeSize * this._scale}px`;
+    this.dateEl.style.fontSize = `${this._baseDateSize * this._scale}px`;
+  }
+
+  _initResize() {
+    const handle = document.createElement('div');
+    handle.id = 'clock-resize-handle';
+    handle.title = 'Drag to resize';
+    this.clockEl.appendChild(handle);
+
+    this._onResizeMove = this._onResizeMove.bind(this);
+    this._onResizeEnd = this._onResizeEnd.bind(this);
+
+    handle.addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
+      const rect = this.clockEl.getBoundingClientRect();
+      this._resizeState = {
+        startX: e.clientX,
+        startY: e.clientY,
+        startWidth: rect.width,
+        startHeight: rect.height,
+        startScale: this._scale,
+      };
+      this.container.classList.add('resizing');
+      e.preventDefault();
+      e.stopPropagation();
+      document.addEventListener('mousemove', this._onResizeMove);
+      document.addEventListener('mouseup', this._onResizeEnd);
+    });
+  }
+
+  _onResizeMove(e) {
+    if (!this._resizeState) return;
+    const s = this._resizeState;
+    const dx = e.clientX - s.startX;
+    const dy = e.clientY - s.startY;
+    const avgDelta = (dx + dy) / 2;
+    const minScale = 0.4;
+    const maxScale = 2.5;
+    const sensitivity = 0.003;
+    this._scale = Math.max(minScale, Math.min(maxScale, s.startScale + avgDelta * sensitivity));
+    this._applySize();
+  }
+
+  _onResizeEnd() {
+    if (!this._resizeState) return;
+    this.container.classList.remove('resizing');
+    this._scale = Math.round(this._scale * 100) / 100;
+    this._applySize();
+    this._saveSize();
+    this._resizeState = null;
+    document.removeEventListener('mousemove', this._onResizeMove);
+    document.removeEventListener('mouseup', this._onResizeEnd);
   }
 
   _restorePosition() {

@@ -14,6 +14,7 @@ export const WALLPAPER_KEY     = 'desktop_tab_wallpaper';
 export const MUSIC_CONFIG_KEY  = 'music_config';
 export const STICKY_NOTES_KEY  = 'canopy_sticky_notes';
 export const DELETED_NOTES_KEY = 'canopy_deleted_notes';
+export const FAVICON_CACHE_KEY = 'canopy_favicon_cache';
 export const GRID_COL       = 130;   // px width of each icon cell
 export const GRID_ROW       = 116;   // px height of each icon cell
 
@@ -44,6 +45,45 @@ export function getFaviconUrl(url) {
   } catch {
     return null;
   }
+}
+
+/**
+ * Normalize a user-entered shortcut URL and allow only web navigations.
+ * @param {string} rawUrl
+ * @returns {string|null}
+ */
+export function normalizeShortcutUrl(rawUrl) {
+  if (typeof rawUrl !== 'string') return null;
+
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return null;
+
+  const explicitScheme = /^[a-z][a-z0-9+.-]*:/i.test(trimmed);
+  if (explicitScheme && !/^https?:\/\//i.test(trimmed)) return null;
+
+  const candidate = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+
+  try {
+    const url = new URL(candidate);
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Normalize an optional image URL for user-provided icons/wallpapers.
+ * @param {string} rawUrl
+ * @returns {string|null}
+ */
+export function normalizeImageUrl(rawUrl) {
+  if (typeof rawUrl !== 'string') return null;
+
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return null;
+  if (/^data:image\//i.test(trimmed)) return trimmed;
+
+  return normalizeShortcutUrl(trimmed);
 }
 
 /**

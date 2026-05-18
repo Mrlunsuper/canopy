@@ -3,7 +3,7 @@
    Shortcut modal, folder-create modal, and folder overlay
    ============================================================ */
 
-import { uid, getFaviconUrl, toast, snapToGrid, GRID_COL, GRID_ROW } from './utils.js';
+import { uid, getFaviconUrl, toast, snapToGrid, GRID_COL, GRID_ROW, normalizeShortcutUrl, normalizeImageUrl } from './utils.js';
 
 export class ModalManager {
   /**
@@ -104,8 +104,12 @@ export class ModalManager {
 
     if (!url) { toast('Please enter URL', 'error'); return; }
 
-    // auto-add protocol
-    const finalUrl   = url.match(/^https?:\/\//i) ? url : 'https://' + url;
+    const finalUrl = normalizeShortcutUrl(url);
+    if (!finalUrl) { toast('Please enter a valid http(s) URL', 'error'); return; }
+
+    const finalIcon = icon ? normalizeImageUrl(icon) : null;
+    if (icon && !finalIcon) { toast('Icon must be a valid image, http(s), or data URL', 'error'); return; }
+
     const finalTitle = title || new URL(finalUrl).hostname.replace('www.', '');
 
     if (this.editingItemId) {
@@ -113,7 +117,7 @@ export class ModalManager {
       if (item) {
         item.url   = finalUrl;
         item.title = finalTitle;
-        item.icon  = icon || null;
+        item.icon  = finalIcon;
       }
       this.storage.saveData();
       this.renderer.render();
@@ -122,7 +126,7 @@ export class ModalManager {
       this.renderer.addShortcut({
         url:      finalUrl,
         title:    finalTitle,
-        icon:     icon || null,
+        icon:     finalIcon,
         position: this.pendingPosition,
       });
       toast('Shortcut added ✓', 'success');
@@ -158,7 +162,14 @@ export class ModalManager {
     const title = document.getElementById('sc-name').value.trim();
     const icon  = document.getElementById('sc-icon').value.trim();
 
-    const finalUrl   = url.match(/^https?:\/\//i) ? url : 'https://' + url;
+    if (!url) { toast('Please enter URL', 'error'); return; }
+
+    const finalUrl = normalizeShortcutUrl(url);
+    if (!finalUrl) { toast('Please enter a valid http(s) URL', 'error'); return; }
+
+    const finalIcon = icon ? normalizeImageUrl(icon) : null;
+    if (icon && !finalIcon) { toast('Icon must be a valid image, http(s), or data URL', 'error'); return; }
+
     const finalTitle = title || new URL(finalUrl).hostname.replace('www.', '');
 
     const folder = this.storage.findItem(this.editingFolderId);
@@ -169,7 +180,7 @@ export class ModalManager {
         type:     'shortcut',
         title:    finalTitle,
         url:      finalUrl,
-        icon:     icon || null,
+        icon:     finalIcon,
         children: [],
       });
       this.storage.saveData();

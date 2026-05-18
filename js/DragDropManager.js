@@ -18,6 +18,10 @@ export class DragDropManager {
     this._dragId  = null;
     this._offsetX = 0;
     this._offsetY = 0;
+
+    /** @private — throttle state for position saves */
+    this._pendingPositionSave = null;
+    this._positionSaveTimer = null;
   }
 
   /** @returns {string|null} Currently dragged item ID */
@@ -133,7 +137,7 @@ export class DragDropManager {
   }
 
   /**
-   * Update an item's grid position.
+   * Update an item's grid position (throttled to avoid rapid saves).
    * @param {string} id
    * @param {number} x
    * @param {number} y
@@ -142,15 +146,21 @@ export class DragDropManager {
     const item = this.storage.findItem(id);
     if (!item) return;
 
-    // clamp within grid
     const grid = document.getElementById('desktop-grid');
     const maxX = grid.offsetWidth  - GRID_COL;
     const maxY = grid.offsetHeight - GRID_ROW;
     item.position.x = Math.max(0, Math.min(x, maxX));
     item.position.y = Math.max(0, Math.min(y, maxY));
 
-    this.storage.saveData();
-    this.renderCallback();
+    // Throttle: coalesce rapid position saves into one at ~100ms
+    this._pendingPositionSave = true;
+    if (this._positionSaveTimer) return;
+    this._positionSaveTimer = setTimeout(() => {
+      this._positionSaveTimer = null;
+      this._pendingPositionSave = null;
+      this.storage.saveData();
+      this.renderCallback();
+    }, 100);
   }
 
   // ─── Folder Drop ─────────────────────────────

@@ -12,6 +12,7 @@ const GRID_ROW    = 116;
 const WALLHAVEN_API_ORIGIN = 'https://wallhaven.cc';
 const WALLHAVEN_IMAGE_ORIGIN = 'https://w.wallhaven.cc';
 const MUSIC_INDEX_ORIGIN = 'https://pub-1fcf1661114842b0b4459512cb05dd05.r2.dev';
+const MUSIC_API_ORIGIN = 'https://r2-music-api.larx-update.workers.dev';
 const MAX_PROXY_BYTES = 1024 * 1024;
 
 function uid() {
@@ -24,6 +25,24 @@ function parseHttpsUrl(rawUrl) {
   try {
     const url = new URL(rawUrl);
     return url.protocol === 'https:' ? url : null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeShortcutUrl(rawUrl) {
+  if (typeof rawUrl !== 'string') return null;
+
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return null;
+
+  const explicitScheme = /^[a-z][a-z0-9+.-]*:/i.test(trimmed);
+  if (explicitScheme && !/^https?:\/\//i.test(trimmed)) return null;
+
+  const candidate = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const url = new URL(candidate);
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null;
   } catch {
     return null;
   }
@@ -42,6 +61,11 @@ function isWallhavenDownloadUrl(rawUrl) {
 function isMusicIndexUrl(rawUrl) {
   const url = parseHttpsUrl(rawUrl);
   return Boolean(url && url.origin === MUSIC_INDEX_ORIGIN && url.pathname === '/index.json');
+}
+
+function isMusicApiUrl(rawUrl) {
+  const url = parseHttpsUrl(rawUrl);
+  return Boolean(url && url.origin === MUSIC_API_ORIGIN && url.pathname === '/api/songs');
 }
 
 function sanitizeDownloadFilename(filename) {
@@ -99,8 +123,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.type === 'music-sync') {
-    if (!isMusicIndexUrl(request.url)) {
-      sendResponse({ ok: false, error: 'Blocked untrusted music index URL' });
+    if (!isMusicIndexUrl(request.url) && !isMusicApiUrl(request.url)) {
+      sendResponse({ ok: false, error: 'Blocked untrusted music URL' });
       return false;
     }
 
@@ -124,9 +148,11 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId !== 'add-to-canopy') return;
 
-  const url   = info.pageUrl || tab.url;
-  const title = tab.title || new URL(url).hostname.replace('www.', '');
-  const icon  = tab.favIconUrl || null;
+  const url   = normalizeShortcutUrl(info.pageUrl || tab?.url);
+  if (!url) return;
+
+  const title = tab?.title || new URL(url).hostname.replace('www.', '');
+  const icon  = tab?.favIconUrl || null;
 
   chrome.storage.local.get([STORAGE_KEY], result => {
     const data = result[STORAGE_KEY] || { items: [] };

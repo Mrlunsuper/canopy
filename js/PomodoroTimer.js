@@ -12,7 +12,6 @@ export class PomodoroTimer {
     this.modeLabel     = document.getElementById('pomodoro-mode');
     this.timeDisplay   = document.getElementById('pomodoro-time');
     this.sessionCount  = document.getElementById('pomodoro-sessions');
-    this.collapseBtn   = document.getElementById('pomodoro-collapse');
     this.progressRing  = document.getElementById('pomodoro-progress-ring');
     this.progressCircle = document.getElementById('pomodoro-progress-circle');
 
@@ -54,12 +53,6 @@ export class PomodoroTimer {
   skip() {
     this._pause();
     this._advancePhase();
-    this._render();
-  }
-
-  toggleCollapsed() {
-    this.config.collapsed = !this.config.collapsed;
-    this._saveConfig();
     this._render();
   }
 
@@ -164,8 +157,7 @@ export class PomodoroTimer {
       shortBreakMinutes: 5,
       longBreakMinutes: 15,
       completedSessions: 0,
-      position: null,
-      collapsed: false
+      position: null
     };
   }
 
@@ -182,7 +174,6 @@ export class PomodoroTimer {
       this.config.phase = 'work';
     }
     if (typeof this.config.completedSessions !== 'number') this.config.completedSessions = 0;
-    if (typeof this.config.collapsed !== 'boolean') this.config.collapsed = false;
   }
 
   _saveConfig() {
@@ -193,8 +184,7 @@ export class PomodoroTimer {
         shortBreakMinutes: this.config.shortBreakMinutes,
         longBreakMinutes: this.config.longBreakMinutes,
         completedSessions: this.config.completedSessions,
-        position: this.config.position,
-        collapsed: this.config.collapsed
+        position: this.config.position
       }));
     } catch {}
   }
@@ -252,19 +242,12 @@ export class PomodoroTimer {
     // Running state
     this.player.classList.toggle('running', this._running);
 
-    // Collapsed state
-    this.player.classList.toggle('collapsed', this.config.collapsed);
-    this.collapseBtn.innerHTML = this.config.collapsed
-      ? '<i data-lucide="chevron-up"></i>'
-      : '<i data-lucide="chevron-down"></i>';
-    this.collapseBtn.title = this.config.collapsed ? 'Expand' : 'Collapse';
-
     // Progress ring
     this._updateProgressRing();
 
     // Re-create lucide icons
     if (typeof lucide !== 'undefined') {
-      lucide.createIcons({ nodes: [this.toggleBtn, this.collapseBtn, this.resetBtn, this.skipBtn] });
+      lucide.createIcons({ nodes: [this.toggleBtn, this.resetBtn, this.skipBtn] });
     }
   }
 
@@ -285,7 +268,6 @@ export class PomodoroTimer {
     this.toggleBtn.addEventListener('click', e => { e.stopPropagation(); this.toggle(); });
     this.resetBtn.addEventListener('click', e => { e.stopPropagation(); this.reset(); });
     this.skipBtn.addEventListener('click', e => { e.stopPropagation(); this.skip(); });
-    this.collapseBtn.addEventListener('click', e => { e.stopPropagation(); this.toggleCollapsed(); });
 
     // Drag to reposition
     this.pill.addEventListener('mousedown', e => {

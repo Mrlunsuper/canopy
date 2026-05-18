@@ -19,9 +19,7 @@ export class MusicPlayer {
     this.newUrl       = document.getElementById('music-new-url');
     this.addBtn       = document.getElementById('music-add-btn');
     this.resetBtn     = document.getElementById('music-reset-defaults');
-    this.r2Url        = document.getElementById('music-r2-url');
     this.syncBtn      = document.getElementById('music-sync-btn');
-    this.collapseBtn  = document.getElementById('music-collapse');
 
     this.config = this._defaults();
     this.audio  = document.getElementById('music-audio');
@@ -29,9 +27,9 @@ export class MusicPlayer {
     this._dragState = null;
   }
 
-  init() {
+  async init() {
     this.audio.preload = 'auto';
-    this._loadConfig();
+    await this._loadConfig();
     this._applyPosition();
     this._applyTrack();
     this._updateProgressDisplay();
@@ -135,12 +133,6 @@ export class MusicPlayer {
     this._renderPlayer();
   }
 
-  toggleCollapsed() {
-    this.config.collapsed = !this.config.collapsed;
-    this._saveConfig();
-    this._renderPlayer();
-  }
-
   addTrack(name, url) {
     name = name.trim();
     url = url.trim();
@@ -200,7 +192,6 @@ export class MusicPlayer {
     const defaults = this._defaults();
     this.config.tracks = defaults.tracks;
     this.config.currentIndex = defaults.currentIndex;
-    this.config.r2BaseUrl = defaults.r2BaseUrl;
     this.config.shuffle = defaults.shuffle;
     this.config.repeat = defaults.repeat;
     this.config.shuffleOrder = [];
@@ -224,14 +215,12 @@ export class MusicPlayer {
     return {
       currentIndex: 0,
       volume: 75,
-      r2BaseUrl: '',
       tracks: [],
       shuffle: false,
       repeat: 0,
       shuffleOrder: [],
       shufflePos: 0,
-      position: null,
-      collapsed: false
+      position: null
     };
   }
 
@@ -245,55 +234,70 @@ export class MusicPlayer {
   }
 
   _loadConfig() {
-    try {
-      const raw = localStorage.getItem(MUSIC_CONFIG_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        this.config = { ...this._defaults(), ...parsed, tracks: parsed.tracks || [] };
-      }
-    } catch {}
+    const apply = raw => {
+      try {
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          this.config = { ...this._defaults(), ...parsed, tracks: parsed.tracks || [] };
+        }
+      } catch {}
 
-    if (typeof this.config.currentIndex !== 'number' ||
-        this.config.currentIndex < 0 ||
-        this.config.currentIndex >= this.config.tracks.length) {
-      this.config.currentIndex = 0;
-    }
-    if (typeof this.config.volume !== 'number') this.config.volume = 75;
-    if (typeof this.config.r2BaseUrl !== 'string') this.config.r2BaseUrl = '';
-    if (typeof this.config.shuffle !== 'boolean') this.config.shuffle = false;
-    if (typeof this.config.repeat !== 'number' || this.config.repeat < 0 || this.config.repeat > 2) this.config.repeat = 0;
-    if (typeof this.config.collapsed !== 'boolean') this.config.collapsed = false;
-    this.config.volume = Math.max(0, Math.min(100, this.config.volume));
-    this.audio.volume = this.config.volume / 100;
-    this.r2Url.value = this.config.r2BaseUrl;
+      if (typeof this.config.currentIndex !== 'number' ||
+          this.config.currentIndex < 0 ||
+          this.config.currentIndex >= this.config.tracks.length) {
+        this.config.currentIndex = 0;
+      }
+      if (typeof this.config.volume !== 'number') this.config.volume = 75;
+      if (typeof this.config.shuffle !== 'boolean') this.config.shuffle = false;
+      if (typeof this.config.repeat !== 'number' || this.config.repeat < 0 || this.config.repeat > 2) this.config.repeat = 0;
+      this.config.volume = Math.max(0, Math.min(100, this.config.volume));
+      this.audio.volume = this.config.volume / 100;
 
-    if (this.config.shuffle && this.config.tracks.length > 1) {
-      if (!Array.isArray(this.config.shuffleOrder) ||
-          this.config.shuffleOrder.length !== this.config.tracks.length) {
-        this._generateShuffleOrder();
+      if (this.config.shuffle && this.config.tracks.length > 1) {
+        if (!Array.isArray(this.config.shuffleOrder) ||
+            this.config.shuffleOrder.length !== this.config.tracks.length) {
+          this._generateShuffleOrder();
+        }
+        if (typeof this.config.shufflePos !== 'number' ||
+            this.config.shufflePos >= this.config.shuffleOrder.length) {
+          this.config.shufflePos = 0;
+        }
       }
-      if (typeof this.config.shufflePos !== 'number' ||
-          this.config.shufflePos >= this.config.shuffleOrder.length) {
-        this.config.shufflePos = 0;
-      }
+    };
+
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      return new Promise(resolve => {
+        chrome.storage.local.get([MUSIC_CONFIG_KEY], result => {
+          apply(result[MUSIC_CONFIG_KEY]);
+          resolve();
+        });
+      });
+    } else {
+      try {
+        apply(localStorage.getItem(MUSIC_CONFIG_KEY));
+      } catch { apply(null); }
+      return Promise.resolve();
     }
   }
 
   _saveConfig() {
-    try {
-      localStorage.setItem(MUSIC_CONFIG_KEY, JSON.stringify({
-        currentIndex: this.config.currentIndex,
-        volume: this.config.volume,
-        r2BaseUrl: this.config.r2BaseUrl,
-        tracks: this.config.tracks,
-        shuffle: this.config.shuffle,
-        repeat: this.config.repeat,
-        shuffleOrder: this.config.shuffleOrder,
-        shufflePos: this.config.shufflePos,
-        position: this.config.position,
-        collapsed: this.config.collapsed
-      }));
-    } catch {}
+    const data = {
+      currentIndex: this.config.currentIndex,
+      volume: this.config.volume,
+      tracks: this.config.tracks,
+      shuffle: this.config.shuffle,
+      repeat: this.config.repeat,
+      shuffleOrder: this.config.shuffleOrder,
+      shufflePos: this.config.shufflePos,
+      position: this.config.position
+    };
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      chrome.storage.local.set({ [MUSIC_CONFIG_KEY]: JSON.stringify(data) });
+    } else {
+      try {
+        localStorage.setItem(MUSIC_CONFIG_KEY, JSON.stringify(data));
+      } catch {}
+    }
   }
 
   // ═══════════════════════════════════════════════
@@ -301,10 +305,7 @@ export class MusicPlayer {
   // ═══════════════════════════════════════════════
 
   _resolveUrl(url) {
-    if (/^https?:\/\//.test(url)) return url;
-    const base = (this.config.r2BaseUrl || '').replace(/\/+$/, '');
-    const path = url.replace(/^\/+/, '');
-    return base ? `${base}/${path}` : url;
+    return url;
   }
 
   _applyTrack() {
@@ -396,12 +397,6 @@ export class MusicPlayer {
       : '<i data-lucide="pause"></i>';
     this.player.classList.toggle('playing', !this.audio.paused);
 
-    this.player.classList.toggle('collapsed', this.config.collapsed);
-    this.collapseBtn.innerHTML = this.config.collapsed
-      ? '<i data-lucide="chevron-up"></i>'
-      : '<i data-lucide="chevron-down"></i>';
-    this.collapseBtn.title = this.config.collapsed ? 'Expand' : 'Collapse';
-
     this.shuffleBtn.classList.toggle('active', this.config.shuffle);
     this.shuffleBtn.title = this.config.shuffle ? 'Shuffle on' : 'Shuffle off';
 
@@ -420,7 +415,7 @@ export class MusicPlayer {
     }
 
     if (typeof lucide !== 'undefined') {
-      lucide.createIcons({ nodes: [this.toggleBtn, this.shuffleBtn, this.repeatBtn, this.collapseBtn] });
+      lucide.createIcons({ nodes: [this.toggleBtn, this.shuffleBtn, this.repeatBtn] });
     }
   }
 
@@ -569,7 +564,6 @@ export class MusicPlayer {
     this.next.addEventListener('click', e => { e.stopPropagation(); this.nextTrack(); });
     this.shuffleBtn.addEventListener('click', e => { e.stopPropagation(); this.toggleShuffle(); });
     this.repeatBtn.addEventListener('click', e => { e.stopPropagation(); this.cycleRepeat(); });
-    this.collapseBtn.addEventListener('click', e => { e.stopPropagation(); this.toggleCollapsed(); });
 
     // Drag to reposition
     this.pill.addEventListener('mousedown', e => {
@@ -659,11 +653,6 @@ export class MusicPlayer {
 
     this.resetBtn.addEventListener('click', () => this.resetDefaults());
 
-    this.r2Url.addEventListener('change', () => {
-      this.config.r2BaseUrl = this.r2Url.value.trim();
-      this._saveConfig();
-    });
-
     this.syncBtn.addEventListener('click', () => this.syncFromR2());
 
     [this.newName, this.newUrl].forEach(input => {
@@ -674,38 +663,32 @@ export class MusicPlayer {
   }
 
   async syncFromR2() {
-    const base = this.config.r2BaseUrl || this.r2Url.value.trim();
-    if (!base) {
-      toast('Set your R2 bucket URL first', 'error');
-      return;
-    }
-    this.config.r2BaseUrl = base;
-    this.r2Url.value = base;
-    this._saveConfig();
-
     this.syncBtn.disabled = true;
     this.syncBtn.innerHTML = '<i data-lucide="loader"></i> Syncing...';
     if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [this.syncBtn] });
 
     try {
-      const cleanBase = base.replace(/\/+$/, '');
-      const url = `${cleanBase}/index.json`;
+      const url = 'https://r2-music-api.larx-update.workers.dev/api/songs';
       const data = await this._fetchViaWorker(url);
-      if (!data.tracks || !Array.isArray(data.tracks)) {
-        throw new Error('Invalid format: expected { "tracks": [...] }');
+      if (!Array.isArray(data)) {
+        throw new Error('Invalid format: expected array');
       }
       const seen = new Set();
-      data.tracks.forEach(t => {
-        const name = (t.name || '').trim();
-        const url = (t.url || '').trim();
-        if (!name || !url) return;
-        const key = `${name}|${url}`;
+      const newTracks = [];
+      data.forEach(item => {
+        const name = (item.name || '').trim();
+        const streamUrl = (item.streamUrl || '').trim();
+        if (!name || !streamUrl) return;
+        const key = `${name}|${streamUrl}`;
         if (seen.has(key)) return;
         seen.add(key);
-        this.config.tracks.push({ name, url });
+        newTracks.push({ name, url: streamUrl });
       });
+      this.config.tracks = newTracks;
+      this.config.currentIndex = 0;
       if (this.config.shuffle) this._generateShuffleOrder();
       this._saveConfig();
+      this._applyTrack();
       this._renderPlayer();
       this._renderSettingsList();
       this._checkVisibility();

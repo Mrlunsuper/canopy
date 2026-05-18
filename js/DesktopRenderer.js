@@ -9,12 +9,14 @@ export class DesktopRenderer {
   /**
    * @param {import('./StorageManager.js').StorageManager} storage
    * @param {import('./DragDropManager.js').DragDropManager} dragDrop
+   * @param {import('./FaviconCache.js').FaviconCache} faviconCache
    * @param {Function} onIconOpen — callback(item) when an icon is opened
    * @param {Function} onIconContext — callback(x, y, item) on right-click
    */
-  constructor(storage, dragDrop, onIconOpen, onIconContext) {
+  constructor(storage, dragDrop, faviconCache, onIconOpen, onIconContext) {
     this.storage      = storage;
     this.dragDrop     = dragDrop;
+    this.faviconCache = faviconCache;
     this.onIconOpen   = onIconOpen;
     this.onIconContext = onIconContext;
 
@@ -27,22 +29,54 @@ export class DesktopRenderer {
 
   /**
    * Re-render all desktop icons.
+   * @param {boolean} [force=false] — full rebuild instead of incremental diff
    */
-  render() {
+  render(force = false) {
     const grid = document.getElementById('desktop-grid');
-    // keep only drag-placeholder if any
+    const existingEls = new Map();
     Array.from(grid.children).forEach(c => {
-      if (!c.classList.contains('drop-placeholder')) c.remove();
+      if (c.dataset.id) existingEls.set(c.dataset.id, c);
     });
 
+    const currentIds = new Set(this.storage.data.items.map(i => i.id));
+
+    // Remove elements for deleted items
+    for (const [id, el] of existingEls) {
+      if (!currentIds.has(id)) el.remove();
+    }
+
+    // Add/update items
     this.storage.data.items.forEach(item => {
-      const el = this.createIconElement(item);
-      el.style.left = item.position.x + 'px';
-      el.style.top  = item.position.y + 'px';
-      grid.appendChild(el);
+      const existing = existingEls.get(item.id);
+      if (existing) {
+        // Update position only (avoid full DOM rebuild)
+        existing.style.left = item.position.x + 'px';
+        existing.style.top  = item.position.y + 'px';
+        // Update label if title changed
+        const label = existing.querySelector('.icon-label');
+        if (label && label.textContent !== (item.title || item.url || 'Shortcut')) {
+          label.textContent = item.title || item.url || 'Shortcut';
+          label.title = item.title || '';
+        }
+      } else {
+        const el = this.createIconElement(item);
+        el.style.left = item.position.x + 'px';
+        el.style.top  = item.position.y + 'px';
+        grid.appendChild(el);
+      }
     });
 
-    if (typeof lucide !== 'undefined') lucide.createIcons();
+    // Only create icons for newly added elements
+    const newEls = this.storage.data.items
+      .filter(item => !existingEls.has(item.id))
+      .map(item => grid.querySelector(`.desktop-icon[data-id="${item.id}"]`))
+      .filter(Boolean);
+    if (newEls.length > 0 && typeof lucide !== 'undefined') {
+      lucide.createIcons({ nodes: newEls });
+    }
+
+    // Warm up favicon cache in background
+    this._warmFaviconCache();
   }
 
   // ═══════════════════════════════════════════════
@@ -112,7 +146,9 @@ export class DesktopRenderer {
         si.className = 'folder-stack-item';
         if (child.url) {
           const img = document.createElement('img');
-          img.src = child.icon || getFaviconUrl(child.url) || '';
+          const domain = (() => { try { return new URL(child.url).hostname; } catch { return null; } })();
+          const cached = domain ? this.faviconCache.get(domain) : null;
+          img.src = child.icon || cached || getFaviconUrl(child.url) || '';
           img.alt = '';
           img.draggable = false;
           img.onerror = () => { img.style.display = 'none'; };
@@ -142,10 +178,21 @@ export class DesktopRenderer {
     img.className = 'icon-img';
     img.draggable = false;
     img.alt = item.title || '';
-    img.src = item.icon || getFaviconUrl(item.url) || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="%237c6af7"/><text x="32" y="44" font-size="36" text-anchor="middle">🔗</text></svg>';
-    img.onerror = () => {
-      img.src = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%23302b63'/><text x='32' y='44' font-size='32' text-anchor='middle'>🔗</text></svg>`;
-    };
+
+    const fallback = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="%237c6af7"/><text x="32" y="44" font-size="36" text-anchor="middle">🔗</text></svg>';
+    const errorFallback = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%23302b63'/><text x='32' y='44' font-size='32' text-anchor='middle'>🔗</text></svg>`;
+
+    if (item.icon) {
+      img.src = item.icon;
+    } else if (item.url) {
+      const domain = (() => { try { return new URL(item.url).hostname; } catch { return null; } })();
+      const cached = domain ? this.faviconCache.get(domain) : null;
+      img.src = cached || getFaviconUrl(item.url) || fallback;
+    } else {
+      img.src = fallback;
+    }
+
+    img.onerror = () => { img.src = errorFallback; };
     wrap.appendChild(img);
   }
 
@@ -405,7 +452,7 @@ export class DesktopRenderer {
     };
     this.storage.data.items.push(item);
     this.storage.saveData();
-    this.autoArrange();
+    this.render();
     return item;
   }
 
@@ -431,7 +478,7 @@ export class DesktopRenderer {
     };
     this.storage.data.items.push(item);
     this.storage.saveData();
-    this.autoArrange();
+    this.render();
     return item;
   }
 
@@ -495,6 +542,33 @@ export class DesktopRenderer {
       }
     }
     return { x: 0, y: 0 };
+  }
+
+  // ═══════════════════════════════════════════════
+  //  FAVICON CACHE WARM-UP
+  // ═══════════════════════════════════════════════
+
+  /**
+   * Asynchronously fetch and cache favicons for all uncached shortcuts.
+   * Runs in background — does not block rendering.
+   * @private
+   */
+  async _warmFaviconCache() {
+    const urls = new Set();
+    const collect = items => {
+      for (const item of items) {
+        if (item.url && !item.icon) urls.add(item.url);
+        if (item.children?.length) collect(item.children);
+      }
+    };
+    collect(this.storage.data.items);
+
+    for (const url of urls) {
+      const domain = (() => { try { return new URL(url).hostname; } catch { return null; } })();
+      if (domain && !this.faviconCache.get(domain)) {
+        await this.faviconCache.resolve(url);
+      }
+    }
   }
 
   // ═══════════════════════════════════════════════
