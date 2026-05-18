@@ -21,7 +21,14 @@ import { StickyNotesManager } from './StickyNotesManager.js';
 import { WeatherWidget }      from './WeatherWidget.js';
 
 const WIDGET_LAYOUT_KEY = 'canopy_widget_layout';
+const WIDGET_COLLAPSE_KEY = 'canopy_widget_collapse';
 const WIDGET_VISIBILITY_KEY = 'canopy_widget_visibility';
+const WIDGET_COLLAPSE_DEFAULTS = {
+  clock: false,
+  music: false,
+  weather: false,
+  pomodoro: false,
+};
 const WIDGET_VISIBILITY_DEFAULTS = {
   clock: true,
   music: true,
@@ -85,6 +92,7 @@ class CanopyApp {
     this.stickyNotes = new StickyNotesManager();
 
     this.widgetVisibility = { ...WIDGET_VISIBILITY_DEFAULTS };
+    this.widgetCollapse = { ...WIDGET_COLLAPSE_DEFAULTS };
   }
 
   // ═══════════════════════════════════════════════
@@ -107,6 +115,7 @@ class CanopyApp {
 
     // Apply saved widget layout before widgets paint
     this._applyWidgetLayout(this._loadWidgetLayout(), false);
+    this._applyWidgetCollapse(this._loadWidgetCollapse(), false);
     this._applyWidgetVisibility(this._loadWidgetVisibility(), false);
 
     // Start clock
@@ -217,6 +226,51 @@ class CanopyApp {
     if (persist) {
       try { localStorage.setItem(WIDGET_LAYOUT_KEY, nextLayout); } catch {}
       toast(`Widget layout: ${layoutLabel}`, 'success');
+    }
+
+    this.music?._applySize?.();
+    this.weather?._applySize?.();
+    this.pomodoro?._applySize?.();
+  }
+
+  /** @private */
+  _loadWidgetCollapse() {
+    try {
+      const raw = localStorage.getItem(WIDGET_COLLAPSE_KEY);
+      if (!raw) return { ...WIDGET_COLLAPSE_DEFAULTS };
+      const parsed = JSON.parse(raw);
+      return { ...WIDGET_COLLAPSE_DEFAULTS, ...parsed };
+    } catch {
+      return { ...WIDGET_COLLAPSE_DEFAULTS };
+    }
+  }
+
+  /**
+   * Collapse compact widgets down to their core status controls individually.
+   * Card layout ignores these classes via CSS.
+   * @param {object} collapse
+   * @param {boolean} persist
+   * @private
+   */
+  _applyWidgetCollapse(collapse, persist = true) {
+    this.widgetCollapse = { ...WIDGET_COLLAPSE_DEFAULTS, ...collapse };
+
+    const elements = this._widgetElementMap();
+    Object.entries(WIDGET_COLLAPSE_DEFAULTS).forEach(([id]) => {
+      const collapsed = this.widgetCollapse[id] === true;
+      elements[id]?.classList.toggle('widget-collapsed', collapsed);
+    });
+
+    document.querySelectorAll('.widget-collapse-toggle').forEach(btn => {
+      const id = btn.dataset.widgetCollapseId;
+      const active = this.widgetCollapse[id] === true;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', String(active));
+    });
+
+    if (persist) {
+      try { localStorage.setItem(WIDGET_COLLAPSE_KEY, JSON.stringify(this.widgetCollapse)); } catch {}
+      toast('Widget collapse updated', 'success');
     }
   }
 
@@ -686,6 +740,17 @@ class CanopyApp {
       btn.addEventListener('click', () => this._applyWidgetLayout(btn.dataset.widgetLayout));
     });
     this._applyWidgetLayout(this._loadWidgetLayout(), false);
+
+    document.querySelectorAll('.widget-collapse-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.widgetCollapseId;
+        this._applyWidgetCollapse({
+          ...this.widgetCollapse,
+          [id]: this.widgetCollapse[id] !== true,
+        });
+      });
+    });
+    this._applyWidgetCollapse(this._loadWidgetCollapse(), false);
 
     document.querySelectorAll('.widget-visibility-toggle').forEach(btn => {
       btn.addEventListener('click', () => {

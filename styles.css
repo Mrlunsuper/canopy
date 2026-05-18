@@ -663,6 +663,7 @@ textarea {
   white-space: nowrap;
   transition: border-color 0.3s, box-shadow 0.3s, gap 0.35s ease, padding 0.35s ease;
   touch-action: none;
+  cursor: grab;
 }
 
 #music-pill:hover {
@@ -675,31 +676,8 @@ textarea {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2), 0 0 6px rgba(124, 106, 247, 0.15);
 }
 
-/* ── Drag handle ── */
-#music-drag-handle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(255, 255, 255, 0.2);
-  padding: 2px;
-  margin-right: 1px;
-  cursor: grab;
-  flex-shrink: 0;
-  transition: color 0.2s;
-}
-
-#music-pill:hover #music-drag-handle {
-  color: rgba(255, 255, 255, 0.4);
-}
-
-#music-drag-handle:active {
+#music-pill:active {
   cursor: grabbing;
-}
-
-#music-drag-handle svg {
-  width: 14px;
-  height: 14px;
-  stroke: currentColor;
 }
 
 /* ── All control buttons ── */
@@ -1070,6 +1048,8 @@ textarea {
   white-space: nowrap;
   transition: border-color 0.3s, box-shadow 0.3s, gap 0.35s ease, padding 0.35s ease;
   touch-action: none;
+  position: relative;
+  cursor: grab;
 }
 
 #pomodoro-pill:hover {
@@ -1093,31 +1073,8 @@ textarea {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2), 0 0 6px rgba(251, 191, 36, 0.15);
 }
 
-/* ── Drag handle ── */
-#pomodoro-drag-handle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(255, 255, 255, 0.2);
-  padding: 2px;
-  margin-right: 1px;
-  cursor: grab;
-  flex-shrink: 0;
-  transition: color 0.2s;
-}
-
-#pomodoro-pill:hover #pomodoro-drag-handle {
-  color: rgba(255, 255, 255, 0.4);
-}
-
-#pomodoro-drag-handle:active {
+#pomodoro-pill:active {
   cursor: grabbing;
-}
-
-#pomodoro-drag-handle svg {
-  width: 14px;
-  height: 14px;
-  stroke: currentColor;
 }
 
 /* ── Progress ring ── */
@@ -1625,7 +1582,7 @@ textarea {
 #taskbar-clock {
   text-align: center;
   line-height: 1;
-  cursor: move;
+  cursor: grab;
   user-select: none;
   position: relative;
 }
@@ -1636,19 +1593,29 @@ textarea {
   transition: none !important;
 }
 
+#center-widget.dragging #taskbar-clock {
+  cursor: grabbing;
+}
+
 #center-widget.resizing {
   transition: none !important;
 }
 
 #clock-resize-handle {
   position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 20px;
-  height: 20px;
+  bottom: 5px;
+  right: 5px;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
   cursor: nwse-resize;
   opacity: 0;
-  transition: opacity 0.2s;
+  z-index: 4;
+  background:
+    linear-gradient(135deg, transparent 0 45%, rgba(255, 255, 255, 0.18) 45% 55%, transparent 55%),
+    linear-gradient(135deg, transparent 0 65%, rgba(255, 255, 255, 0.28) 65% 75%, transparent 75%);
+  transition: opacity 0.15s ease, background 0.15s ease;
+  touch-action: none;
 }
 
 #taskbar-clock:hover #clock-resize-handle {
@@ -1656,19 +1623,11 @@ textarea {
 }
 
 #clock-resize-handle::after {
-  content: '';
-  position: absolute;
-  bottom: 4px;
-  right: 4px;
-  width: 10px;
-  height: 10px;
-  border-right: 2px solid rgba(255, 255, 255, 0.25);
-  border-bottom: 2px solid rgba(255, 255, 255, 0.25);
-  border-radius: 0 0 3px 0;
+  content: none;
 }
 
 #clock-resize-handle:hover::after {
-  border-color: rgba(255, 255, 255, 0.5);
+  content: none;
 }
 
 #clock-time {
@@ -3335,6 +3294,31 @@ input[type="file"] {
   white-space: nowrap;
   transition: border-color 0.3s, box-shadow 0.3s, gap 0.35s ease, padding 0.35s ease;
   touch-action: none;
+  position: relative;
+  cursor: grab;
+}
+
+.widget-resize-handle {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  cursor: nwse-resize;
+  opacity: 0;
+  z-index: 4;
+  background:
+    linear-gradient(135deg, transparent 0 45%, rgba(255, 255, 255, 0.18) 45% 55%, transparent 55%),
+    linear-gradient(135deg, transparent 0 65%, rgba(255, 255, 255, 0.28) 65% 75%, transparent 75%);
+  transition: opacity 0.15s ease, background 0.15s ease;
+  touch-action: none;
+}
+
+#music-pill:hover .widget-resize-handle,
+#weather-pill:hover .widget-resize-handle,
+#pomodoro-pill:hover .widget-resize-handle {
+  opacity: 1;
 }
 
 #weather-pill:hover {
@@ -3342,30 +3326,8 @@ input[type="file"] {
   border-color: rgba(255, 255, 255, 0.1);
 }
 
-#weather-drag-handle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(255, 255, 255, 0.2);
-  padding: 2px;
-  margin-right: 1px;
-  cursor: grab;
-  flex-shrink: 0;
-  transition: color 0.2s;
-}
-
-#weather-pill:hover #weather-drag-handle {
-  color: rgba(255, 255, 255, 0.4);
-}
-
-#weather-drag-handle:active {
+#weather-pill:active {
   cursor: grabbing;
-}
-
-#weather-drag-handle svg {
-  width: 14px;
-  height: 14px;
-  stroke: currentColor;
 }
 
 #weather-icon {

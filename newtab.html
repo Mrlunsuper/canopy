@@ -33,7 +33,6 @@
       <audio id="music-audio" preload="auto"></audio>
       <div id="music-pill">
         <div class="widget-header">
-          <span id="music-drag-handle" title="Drag to reposition"><i data-lucide="grip-vertical"></i></span>
           <span id="music-track-label"></span>
         </div>
         <div class="widget-controls">
@@ -57,7 +56,6 @@
     <div id="weather-widget">
       <div id="weather-pill">
         <div class="widget-header">
-          <span id="weather-drag-handle" title="Drag to reposition"><i data-lucide="grip-vertical"></i></span>
           <span id="weather-icon" class="weather-emoji">🌡️</span>
           <span id="weather-temp" class="weather-temp" title="Click to toggle °C / °F">--°</span>
           <span id="weather-location"></span>
@@ -77,7 +75,6 @@
     <div id="pomodoro-player">
       <div id="pomodoro-pill">
         <div class="widget-header">
-          <span id="pomodoro-drag-handle" title="Drag to reposition"><i data-lucide="grip-vertical"></i></span>
           <div id="pomodoro-ring-wrap">
             <svg id="pomodoro-progress-ring" viewBox="0 0 40 40" width="32" height="32">
               <circle cx="20" cy="20" r="18" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3"/>
@@ -276,6 +273,21 @@
                 </button>
                 <button class="settings-btn compact widget-layout-option" data-widget-layout="card" type="button">
                   <i data-lucide="panel-left"></i> Card
+                </button>
+              </div>
+              <span class="settings-info">Collapse individual widgets in Compact layout.</span>
+              <div class="widget-collapse-grid" role="group" aria-label="Widget collapse">
+                <button class="settings-btn compact widget-collapse-toggle" data-widget-collapse-id="clock" type="button">
+                  <i data-lucide="clock"></i> Clock
+                </button>
+                <button class="settings-btn compact widget-collapse-toggle" data-widget-collapse-id="music" type="button">
+                  <i data-lucide="music"></i> Music
+                </button>
+                <button class="settings-btn compact widget-collapse-toggle" data-widget-collapse-id="weather" type="button">
+                  <i data-lucide="cloud-sun"></i> Weather
+                </button>
+                <button class="settings-btn compact widget-collapse-toggle" data-widget-collapse-id="pomodoro" type="button">
+                  <i data-lucide="timer"></i> Pomodoro
                 </button>
               </div>
             </div>

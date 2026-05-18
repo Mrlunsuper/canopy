@@ -18,6 +18,7 @@ export class PomodoroTimer {
     this.config = this._defaults();
     this._interval = null;
     this._dragState = null;
+    this._resizeState = null;
     this._remaining = 0;   // seconds remaining
     this._total = 0;       // total seconds for current phase
     this._running = false;
@@ -28,10 +29,12 @@ export class PomodoroTimer {
   init() {
     this._loadConfig();
     this._applyPosition();
+    this._applySize();
     if (!this._restoreRunningState()) {
       this._setPhaseTime();
     }
     this._render();
+    this._initResize();
     this._wireEvents();
     this._wireSettings();
   }
@@ -177,6 +180,7 @@ export class PomodoroTimer {
       longBreakMinutes: 15,
       completedSessions: 0,
       position: null,
+      width: null,
       isRunning: false,
       endAt: null
     };
@@ -195,6 +199,8 @@ export class PomodoroTimer {
       this.config.phase = 'work';
     }
     if (typeof this.config.completedSessions !== 'number') this.config.completedSessions = 0;
+    if (typeof this.config.width !== 'number') this.config.width = null;
+    if (this.config.width !== null) this.config.width = Math.max(220, Math.min(360, this.config.width));
     if (typeof this.config.isRunning !== 'boolean') this.config.isRunning = false;
     if (typeof this.config.endAt !== 'number') this.config.endAt = null;
   }
@@ -226,6 +232,7 @@ export class PomodoroTimer {
         longBreakMinutes: this.config.longBreakMinutes,
         completedSessions: this.config.completedSessions,
         position: this.config.position,
+        width: this.config.width,
         isRunning: this._running,
         endAt: this._running ? this._endAt : null
       }));
@@ -239,6 +246,63 @@ export class PomodoroTimer {
       this.player.style.right = 'auto';
       this.player.style.bottom = 'auto';
     }
+  }
+
+  _applySize() {
+    const isCardLayout = document.getElementById('desktop')?.classList.contains('widget-layout-vertical');
+    this.player.style.zoom = '';
+    this.player.style.transform = '';
+    this.player.style.transformOrigin = '';
+    this.pill.style.width = isCardLayout && this.config.width ? `${this.config.width}px` : '';
+  }
+
+  _initResize() {
+    const handle = document.createElement('div');
+    handle.className = 'widget-resize-handle';
+    handle.title = 'Drag to resize';
+    this.pill.appendChild(handle);
+
+    handle.addEventListener('pointerdown', e => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      if (!document.getElementById('desktop')?.classList.contains('widget-layout-vertical')) return;
+      const rect = this.player.getBoundingClientRect();
+      const desktopRect = document.getElementById('desktop').getBoundingClientRect();
+      const left = rect.left - desktopRect.left;
+      const top = rect.top - desktopRect.top;
+      this.player.style.left = left + 'px';
+      this.player.style.top = top + 'px';
+      this.player.style.right = 'auto';
+      this.player.style.bottom = 'auto';
+      this.config.position = { x: left, y: top };
+      this._resizeState = {
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startWidth: this.pill.getBoundingClientRect().width,
+      };
+      handle.setPointerCapture?.(e.pointerId);
+      e.preventDefault();
+      e.stopPropagation();
+    });
+
+    const move = e => {
+      if (!this._resizeState || e.pointerId !== this._resizeState.pointerId) return;
+      const s = this._resizeState;
+      this.config.width = Math.max(220, Math.min(360, s.startWidth + (e.clientX - s.startX)));
+      this._applySize();
+    };
+
+    const end = e => {
+      if (!this._resizeState || e.pointerId !== this._resizeState.pointerId) return;
+      this.config.width = Math.round(this.config.width || this._resizeState.startWidth);
+      this._applySize();
+      this._saveConfig();
+      try { handle.releasePointerCapture?.(this._resizeState.pointerId); } catch {}
+      this._resizeState = null;
+    };
+
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('pointerup', end);
+    handle.addEventListener('pointercancel', end);
   }
 
   // ═══════════════════════════════════════════════
