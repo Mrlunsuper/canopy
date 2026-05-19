@@ -23,6 +23,9 @@ import { WeatherWidget }      from './WeatherWidget.js';
 const WIDGET_LAYOUT_KEY = 'canopy_widget_layout';
 const WIDGET_COLLAPSE_KEY = 'canopy_widget_collapse';
 const WIDGET_VISIBILITY_KEY = 'canopy_widget_visibility';
+const THEME_KEY = 'canopy_theme';
+const THEME_DEFAULT = 'neumorphic';
+const THEME_OPTIONS = ['neumorphic', 'glass', 'paper'];
 const WIDGET_COLLAPSE_DEFAULTS = {
   clock: false,
   music: false,
@@ -106,6 +109,9 @@ class CanopyApp {
     // Load favicon cache
     await this.faviconCache.init();
 
+    // Apply saved visual theme before wallpaper/widgets paint.
+    this._applyTheme(this._loadTheme(), false);
+
     // Load and apply wallpaper
     const wp = await this.storage.loadWallpaper();
     if (wp) this.wallpaper.apply(wp);
@@ -186,6 +192,47 @@ class CanopyApp {
   // ═══════════════════════════════════════════════
   //  SETTINGS (Export / Import / Reset)
   // ═══════════════════════════════════════════════
+
+
+  /** @private */
+  _loadTheme() {
+    try {
+      const saved = localStorage.getItem(THEME_KEY);
+      return THEME_OPTIONS.includes(saved) ? saved : THEME_DEFAULT;
+    } catch {
+      return THEME_DEFAULT;
+    }
+  }
+
+  /**
+   * Apply the selected visual theme globally.
+   * @param {string} theme
+   * @param {boolean} persist
+   * @private
+   */
+  _applyTheme(theme, persist = true) {
+    const nextTheme = THEME_OPTIONS.includes(theme) ? theme : THEME_DEFAULT;
+    const themeLabels = {
+      neumorphic: 'Neumorphism',
+      glass: 'Liquid Glass',
+      paper: 'Ink Paper',
+    };
+    const themeLabel = themeLabels[nextTheme];
+
+    document.body.classList.remove(...THEME_OPTIONS.map(name => `theme-${name}`));
+    document.body.classList.add(`theme-${nextTheme}`);
+
+    document.querySelectorAll('.theme-option').forEach(btn => {
+      const active = btn.dataset.theme === nextTheme;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', String(active));
+    });
+
+    if (persist) {
+      try { localStorage.setItem(THEME_KEY, nextTheme); } catch {}
+      toast(`Theme: ${themeLabel}`, 'success');
+    }
+  }
 
 
   /** @private */
@@ -736,6 +783,10 @@ class CanopyApp {
     });
 
     // ── Widget layout ──
+    document.querySelectorAll('.theme-option').forEach(btn => {
+      btn.addEventListener('click', () => this._applyTheme(btn.dataset.theme));
+    });
+
     document.querySelectorAll('.widget-layout-option').forEach(btn => {
       btn.addEventListener('click', () => this._applyWidgetLayout(btn.dataset.widgetLayout));
     });

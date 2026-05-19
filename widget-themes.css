@@ -1,13 +1,13 @@
-/* ─── Unified Widget Glass Pass ───
-   Floating widgets share the same neutral glass card tokens. Keep color limited
-   to a single soft accent for primary states and progress indicators. */
+/* ─── Unified Widget Neumorphic Pass ───
+   Floating widgets share soft raised/inset card tokens. Keep color limited
+   to a single quiet accent for primary states and progress indicators. */
 :root {
   --widget-card-radius: 16px;
   --widget-card-radius-sm: 12px;
-  --widget-bg: rgba(14, 17, 26, 0.72);
-  --widget-border: rgba(255, 255, 255, 0.12);
+  --widget-bg: rgba(34, 40, 58, 0.88);
+  --widget-border: rgba(255, 255, 255, 0.075);
   --widget-muted: rgba(255, 255, 255, 0.54);
-  --widget-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10), 0 18px 48px rgba(0, 0, 0, 0.32);
+  --widget-shadow: 10px 10px 24px rgba(4, 7, 14, 0.5), -7px -7px 18px rgba(255, 255, 255, 0.055), inset 1px 1px 0 rgba(255, 255, 255, 0.08);
   --widget-accent: rgba(167, 139, 250, 0.86);
 }
 
@@ -19,8 +19,8 @@
   border-radius: var(--widget-card-radius);
   background: var(--widget-bg);
   box-shadow: var(--widget-shadow);
-  backdrop-filter: blur(20px) saturate(1.05);
-  -webkit-backdrop-filter: blur(20px) saturate(1.05);
+  backdrop-filter: blur(10px) saturate(0.96);
+  -webkit-backdrop-filter: blur(10px) saturate(0.96);
 }
 
 #taskbar-clock {
@@ -1089,4 +1089,738 @@
   #desktop.widget-layout-vertical #pomodoro-pill {
     width: min(272px, calc(100vw - 32px));
   }
+}
+
+/* ─── Neumorphic Widget Overrides ─── */
+#taskbar-clock::before,
+#desktop.widget-layout-vertical .weather-detail,
+#desktop.widget-layout-vertical #pomodoro-ring-wrap,
+#desktop.widget-layout-vertical #music-shuffle,
+#desktop.widget-layout-vertical #music-repeat,
+#desktop.widget-layout-vertical #music-prev,
+#desktop.widget-layout-vertical #music-next,
+#desktop.widget-layout-vertical #pomodoro-skip,
+#desktop.widget-layout-vertical #pomodoro-reset,
+#desktop.widget-layout-vertical #weather-refresh {
+  background: rgba(18, 23, 36, 0.55);
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 4px 4px 10px rgba(4, 7, 14, 0.42), inset -3px -3px 8px rgba(255, 255, 255, 0.045);
+}
+
+#music-toggle,
+#pomodoro-toggle,
+#desktop.widget-layout-horizontal #music-toggle,
+#desktop.widget-layout-horizontal #pomodoro-toggle,
+#desktop.widget-layout-horizontal #pomodoro-player.phase-break #pomodoro-toggle,
+#desktop.widget-layout-horizontal #pomodoro-player.phase-long #pomodoro-toggle,
+#desktop.widget-layout-vertical #music-toggle,
+#desktop.widget-layout-vertical #pomodoro-toggle,
+#desktop.widget-layout-vertical #pomodoro-player.phase-break #pomodoro-toggle,
+#desktop.widget-layout-vertical #pomodoro-player.phase-long #pomodoro-toggle {
+  background: linear-gradient(145deg, rgba(203, 194, 255, 0.98), rgba(167, 139, 250, 0.88));
+  color: #141828;
+  box-shadow: 7px 7px 16px rgba(4, 7, 14, 0.43), -5px -5px 13px rgba(255, 255, 255, 0.055), inset 1px 1px 0 rgba(255, 255, 255, 0.34);
+}
+
+#music-toggle:hover,
+#pomodoro-toggle:hover,
+#desktop.widget-layout-horizontal #music-toggle:hover,
+#desktop.widget-layout-horizontal #pomodoro-toggle:hover,
+#desktop.widget-layout-horizontal #pomodoro-player.phase-break #pomodoro-toggle:hover,
+#desktop.widget-layout-horizontal #pomodoro-player.phase-long #pomodoro-toggle:hover,
+#desktop.widget-layout-vertical #music-toggle:hover,
+#desktop.widget-layout-vertical #pomodoro-toggle:hover,
+#desktop.widget-layout-vertical #pomodoro-player.phase-break #pomodoro-toggle:hover,
+#desktop.widget-layout-vertical #pomodoro-player.phase-long #pomodoro-toggle:hover {
+  background: linear-gradient(145deg, rgba(219, 214, 255, 0.98), rgba(196, 181, 253, 0.94));
+}
+
+#music-toggle:active,
+#pomodoro-toggle:active,
+#desktop.widget-layout-horizontal #music-toggle:active,
+#desktop.widget-layout-horizontal #pomodoro-toggle:active,
+#desktop.widget-layout-vertical #music-toggle:active,
+#desktop.widget-layout-vertical #pomodoro-toggle:active {
+  transform: translateY(1px);
+  box-shadow: inset 4px 4px 10px rgba(4, 7, 14, 0.48), inset -4px -4px 10px rgba(255, 255, 255, 0.06);
+}
+
+#music-progress,
+#desktop.widget-layout-horizontal #music-progress,
+#desktop.widget-layout-horizontal #music-volume,
+#desktop.widget-layout-vertical #music-progress,
+#desktop.widget-layout-vertical #music-volume {
+  background: rgba(12, 16, 27, 0.56);
+  box-shadow: inset 4px 4px 9px rgba(4, 7, 14, 0.5), inset -3px -3px 7px rgba(255, 255, 255, 0.045);
+}
+
+#music-progress-fill,
+#music-player.playing #music-progress-fill,
+#desktop.widget-layout-horizontal #music-progress-fill,
+#desktop.widget-layout-horizontal #music-player.playing #music-progress-fill,
+#desktop.widget-layout-vertical #music-progress-fill,
+#desktop.widget-layout-vertical #music-player.playing #music-progress-fill,
+#desktop.widget-layout-horizontal #music-volume::-webkit-slider-thumb,
+#desktop.widget-layout-horizontal #music-volume::-moz-range-thumb,
+#desktop.widget-layout-vertical #music-volume::-webkit-slider-thumb,
+#desktop.widget-layout-vertical #music-volume::-moz-range-thumb {
+  background: linear-gradient(90deg, rgba(167, 139, 250, 0.94), rgba(203, 194, 255, 0.96));
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+#desktop.widget-layout-horizontal {
+  --compact-ink: 246 242 255;
+  --compact-muted: 177 182 202;
+  --compact-panel: 34 40 58;
+  --compact-panel-deep: 16 21 34;
+  --compact-accent: 184 169 255;
+  --widget-bg: rgba(34, 40, 58, 0.9);
+  --widget-border: rgba(255, 255, 255, 0.075);
+  --widget-muted: rgb(var(--compact-muted) / 0.78);
+  --widget-accent: rgb(var(--compact-accent) / 0.94);
+  --widget-shadow: 9px 9px 22px rgba(4, 7, 14, 0.5), -6px -6px 16px rgba(255, 255, 255, 0.052), inset 1px 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+#desktop.widget-layout-horizontal #center-widget,
+#desktop.widget-layout-horizontal #music-player,
+#desktop.widget-layout-horizontal #weather-widget,
+#desktop.widget-layout-horizontal #pomodoro-player,
+#desktop.widget-layout-horizontal #pomodoro-player.phase-break,
+#desktop.widget-layout-horizontal #pomodoro-player.phase-long {
+  --compact-accent: 184 169 255;
+}
+
+#desktop.widget-layout-horizontal #music-pill:hover,
+#desktop.widget-layout-horizontal #pomodoro-pill:hover,
+#desktop.widget-layout-horizontal #weather-pill:hover {
+  background: rgba(39, 46, 66, 0.93);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 11px 11px 26px rgba(4, 7, 14, 0.54), -7px -7px 18px rgba(255, 255, 255, 0.06), inset 1px 1px 0 rgba(255, 255, 255, 0.09);
+}
+
+#desktop.widget-layout-horizontal #music-shuffle:hover,
+#desktop.widget-layout-horizontal #music-repeat:hover,
+#desktop.widget-layout-horizontal #music-prev:hover,
+#desktop.widget-layout-horizontal #music-next:hover,
+#desktop.widget-layout-horizontal #pomodoro-skip:hover,
+#desktop.widget-layout-horizontal #pomodoro-reset:hover,
+#desktop.widget-layout-horizontal #weather-refresh:hover,
+#desktop.widget-layout-horizontal #music-shuffle.active,
+#desktop.widget-layout-horizontal #music-repeat.active {
+  background: rgba(167, 139, 250, 0.12);
+  box-shadow: inset 4px 4px 10px rgba(4, 7, 14, 0.36), inset -3px -3px 8px rgba(255, 255, 255, 0.04);
+}
+
+#desktop.widget-layout-vertical {
+  --widget-paper: rgba(34, 40, 58, 0.92);
+  --widget-paper-deep: rgba(23, 29, 45, 0.96);
+  --widget-paper-border: rgba(255, 255, 255, 0.075);
+  --widget-paper-ink: rgba(255, 255, 255, 0.94);
+  --widget-paper-muted: rgba(255, 255, 255, 0.58);
+  --widget-paper-accent: rgba(196, 181, 253, 0.94);
+  --widget-paper-green: #78d69b;
+  --widget-paper-gold: #f0c466;
+  --widget-paper-shadow: 12px 12px 28px rgba(4, 7, 14, 0.52), -7px -7px 18px rgba(255, 255, 255, 0.055), inset 1px 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+#desktop.widget-layout-vertical #taskbar-clock,
+#desktop.widget-layout-vertical #music-pill,
+#desktop.widget-layout-vertical #weather-pill,
+#desktop.widget-layout-vertical #pomodoro-pill,
+#desktop.widget-layout-vertical #music-pill:hover,
+#desktop.widget-layout-vertical #weather-pill:hover,
+#desktop.widget-layout-vertical #pomodoro-pill:hover {
+  border-radius: 24px;
+  background: linear-gradient(145deg, var(--widget-paper), var(--widget-paper-deep));
+  border-color: var(--widget-paper-border);
+  box-shadow: var(--widget-paper-shadow);
+  color: var(--widget-paper-ink);
+  outline: 1px solid rgba(255, 255, 255, 0.035);
+  outline-offset: -7px;
+  backdrop-filter: blur(10px) saturate(0.96);
+  -webkit-backdrop-filter: blur(10px) saturate(0.96);
+}
+
+#desktop.widget-layout-vertical #music-pill::before,
+#desktop.widget-layout-vertical #weather-pill::before,
+#desktop.widget-layout-vertical #pomodoro-pill::before,
+#desktop.widget-layout-vertical #music-pill::after,
+#desktop.widget-layout-vertical #weather-pill::after,
+#desktop.widget-layout-vertical #pomodoro-pill::after {
+  content: none;
+}
+
+#desktop.widget-layout-vertical #music-pill > .widget-header,
+#desktop.widget-layout-vertical #weather-pill > .widget-header,
+#desktop.widget-layout-vertical #pomodoro-pill > .widget-header,
+#desktop.widget-layout-vertical #music-pill > .widget-controls,
+#desktop.widget-layout-vertical #weather-pill > .widget-actions,
+#desktop.widget-layout-vertical #pomodoro-pill > .widget-actions {
+  border-color: rgba(255, 255, 255, 0.07);
+}
+
+#desktop.widget-layout-vertical #music-track-label,
+#desktop.widget-layout-vertical #weather-location,
+#desktop.widget-layout-vertical #weather-desc,
+#desktop.widget-layout-vertical #pomodoro-mode,
+#desktop.widget-layout-vertical #pomodoro-player.phase-break #pomodoro-mode,
+#desktop.widget-layout-vertical #pomodoro-player.phase-long #pomodoro-mode {
+  color: var(--widget-paper-accent);
+}
+
+#desktop.widget-layout-vertical #clock-time,
+#desktop.widget-layout-vertical #weather-temp,
+#desktop.widget-layout-vertical #pomodoro-time,
+#desktop.widget-layout-vertical #music-track-label {
+  color: var(--widget-paper-ink);
+}
+
+#desktop.widget-layout-vertical #clock-date,
+#desktop.widget-layout-vertical #music-time,
+#desktop.widget-layout-vertical #pomodoro-sessions,
+#desktop.widget-layout-vertical .weather-updated,
+#desktop.widget-layout-vertical .weather-detail {
+  color: var(--widget-paper-muted);
+}
+
+#desktop.widget-layout-vertical #weather-icon {
+  background: rgba(18, 23, 36, 0.5);
+  box-shadow: inset 4px 4px 10px rgba(4, 7, 14, 0.42), inset -3px -3px 8px rgba(255, 255, 255, 0.045);
+}
+
+#desktop.widget-layout-vertical #pomodoro-sessions {
+  border-color: rgba(255, 255, 255, 0.06);
+  background: rgba(18, 23, 36, 0.45);
+  box-shadow: inset 4px 4px 9px rgba(4, 7, 14, 0.36), inset -3px -3px 7px rgba(255, 255, 255, 0.04);
+}
+
+body.theme-glass {
+  --widget-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.055));
+  --widget-border: rgba(255, 255, 255, 0.18);
+  --widget-muted: rgba(227, 232, 245, 0.62);
+  --widget-shadow: 0 18px 60px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  --widget-accent: rgba(142, 242, 223, 0.94);
+}
+
+body.theme-glass #taskbar-clock,
+body.theme-glass #music-pill,
+body.theme-glass #pomodoro-pill,
+body.theme-glass #weather-pill,
+body.theme-glass #center-widget.clock-morning #taskbar-clock,
+body.theme-glass #center-widget.clock-afternoon #taskbar-clock,
+body.theme-glass #center-widget.clock-evening #taskbar-clock,
+body.theme-glass #center-widget.clock-night #taskbar-clock,
+body.theme-glass #pomodoro-player.phase-break #pomodoro-pill,
+body.theme-glass #pomodoro-player.phase-long #pomodoro-pill,
+body.theme-glass #weather-widget.weather-night #weather-pill,
+body.theme-glass #weather-widget.weather-storm #weather-pill,
+body.theme-glass #music-player.playing #music-pill {
+  background: var(--widget-bg);
+  border-color: var(--widget-border);
+  box-shadow: var(--widget-shadow);
+  color: var(--text-primary);
+  backdrop-filter: blur(24px) saturate(1.15);
+  -webkit-backdrop-filter: blur(24px) saturate(1.15);
+}
+
+body.theme-glass #taskbar-clock::before,
+body.theme-glass #desktop.widget-layout-vertical .weather-detail,
+body.theme-glass #desktop.widget-layout-vertical #pomodoro-ring-wrap,
+body.theme-glass #desktop.widget-layout-vertical #music-shuffle,
+body.theme-glass #desktop.widget-layout-vertical #music-repeat,
+body.theme-glass #desktop.widget-layout-vertical #music-prev,
+body.theme-glass #desktop.widget-layout-vertical #music-next,
+body.theme-glass #desktop.widget-layout-vertical #pomodoro-skip,
+body.theme-glass #desktop.widget-layout-vertical #pomodoro-reset,
+body.theme-glass #desktop.widget-layout-vertical #weather-refresh {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 8px 22px rgba(0, 0, 0, 0.18);
+}
+
+body.theme-glass #clock-time,
+body.theme-glass #desktop.widget-layout-horizontal #clock-time,
+body.theme-glass #desktop.widget-layout-horizontal #weather-temp,
+body.theme-glass #desktop.widget-layout-horizontal #pomodoro-time,
+body.theme-glass #desktop.widget-layout-vertical #clock-time,
+body.theme-glass #desktop.widget-layout-vertical #weather-temp,
+body.theme-glass #desktop.widget-layout-vertical #pomodoro-time,
+body.theme-glass #desktop.widget-layout-vertical #music-track-label {
+  color: var(--text-primary);
+}
+
+body.theme-glass #clock-date,
+body.theme-glass #music-track-label,
+body.theme-glass #music-time,
+body.theme-glass #pomodoro-sessions,
+body.theme-glass .weather-updated,
+body.theme-glass #weather-location,
+body.theme-glass #desktop.widget-layout-horizontal #clock-date,
+body.theme-glass #desktop.widget-layout-horizontal #music-track-label,
+body.theme-glass #desktop.widget-layout-horizontal #music-time,
+body.theme-glass #desktop.widget-layout-horizontal #pomodoro-sessions,
+body.theme-glass #desktop.widget-layout-horizontal .weather-updated,
+body.theme-glass #desktop.widget-layout-vertical #clock-date,
+body.theme-glass #desktop.widget-layout-vertical #music-time,
+body.theme-glass #desktop.widget-layout-vertical #pomodoro-sessions,
+body.theme-glass #desktop.widget-layout-vertical .weather-updated,
+body.theme-glass #desktop.widget-layout-vertical .weather-detail {
+  color: var(--text-secondary);
+}
+
+body.theme-glass #pomodoro-ring-icon,
+body.theme-glass #pomodoro-player.running #pomodoro-ring-icon,
+body.theme-glass #pomodoro-mode,
+body.theme-glass #weather-temp:hover,
+body.theme-glass #weather-desc,
+body.theme-glass #desktop.widget-layout-vertical #music-track-label,
+body.theme-glass #desktop.widget-layout-vertical #weather-location,
+body.theme-glass #desktop.widget-layout-vertical #weather-desc,
+body.theme-glass #desktop.widget-layout-vertical #pomodoro-mode,
+body.theme-glass #desktop.widget-layout-vertical #pomodoro-player.phase-break #pomodoro-mode,
+body.theme-glass #desktop.widget-layout-vertical #pomodoro-player.phase-long #pomodoro-mode {
+  color: var(--widget-accent);
+}
+
+body.theme-glass #music-toggle,
+body.theme-glass #pomodoro-toggle,
+body.theme-glass #desktop.widget-layout-horizontal #music-toggle,
+body.theme-glass #desktop.widget-layout-horizontal #pomodoro-toggle,
+body.theme-glass #desktop.widget-layout-horizontal #pomodoro-player.phase-break #pomodoro-toggle,
+body.theme-glass #desktop.widget-layout-horizontal #pomodoro-player.phase-long #pomodoro-toggle,
+body.theme-glass #desktop.widget-layout-vertical #music-toggle,
+body.theme-glass #desktop.widget-layout-vertical #pomodoro-toggle,
+body.theme-glass #desktop.widget-layout-vertical #pomodoro-player.phase-break #pomodoro-toggle,
+body.theme-glass #desktop.widget-layout-vertical #pomodoro-player.phase-long #pomodoro-toggle {
+  background: linear-gradient(145deg, rgba(200, 255, 245, 0.98), rgba(99, 221, 205, 0.9));
+  color: #06131a;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28), 0 0 28px rgba(142, 242, 223, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.56);
+}
+
+body.theme-glass #music-progress,
+body.theme-glass #desktop.widget-layout-horizontal #music-progress,
+body.theme-glass #desktop.widget-layout-horizontal #music-volume,
+body.theme-glass #desktop.widget-layout-vertical #music-progress,
+body.theme-glass #desktop.widget-layout-vertical #music-volume {
+  background: rgba(5, 9, 18, 0.32);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 22px rgba(0, 0, 0, 0.16);
+}
+
+body.theme-glass #desktop.widget-layout-horizontal,
+body.theme-glass #desktop.widget-layout-vertical {
+  --compact-ink: 249 250 255;
+  --compact-muted: 227 232 245;
+  --compact-panel: 20 26 42;
+  --compact-panel-deep: 11 15 26;
+  --compact-accent: 142 242 223;
+  --widget-paper: rgba(255, 255, 255, 0.13);
+  --widget-paper-deep: rgba(255, 255, 255, 0.055);
+  --widget-paper-border: rgba(255, 255, 255, 0.18);
+  --widget-paper-ink: rgba(249, 250, 255, 0.96);
+  --widget-paper-muted: rgba(227, 232, 245, 0.62);
+  --widget-paper-accent: rgba(142, 242, 223, 0.94);
+  --widget-paper-shadow: 0 18px 60px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+body.theme-glass #desktop.widget-layout-horizontal #music-pill:hover,
+body.theme-glass #desktop.widget-layout-horizontal #pomodoro-pill:hover,
+body.theme-glass #desktop.widget-layout-horizontal #weather-pill:hover,
+body.theme-glass #desktop.widget-layout-vertical #music-pill,
+body.theme-glass #desktop.widget-layout-vertical #weather-pill,
+body.theme-glass #desktop.widget-layout-vertical #pomodoro-pill,
+body.theme-glass #desktop.widget-layout-vertical #music-pill:hover,
+body.theme-glass #desktop.widget-layout-vertical #weather-pill:hover,
+body.theme-glass #desktop.widget-layout-vertical #pomodoro-pill:hover,
+body.theme-glass #desktop.widget-layout-vertical #taskbar-clock {
+  background: linear-gradient(145deg, var(--widget-paper), var(--widget-paper-deep));
+  border-color: var(--widget-paper-border);
+  box-shadow: var(--widget-paper-shadow);
+  color: var(--text-primary);
+}
+
+body.theme-paper {
+  --widget-bg:
+    radial-gradient(circle at 16% 12%, rgba(255, 255, 246, 0.62), transparent 34%),
+    linear-gradient(135deg, rgba(255, 249, 229, 0.9), rgba(230, 210, 170, 0.82));
+  --widget-border: rgba(54, 39, 25, 0.22);
+  --widget-muted: rgba(68, 50, 33, 0.64);
+  --widget-shadow: 0 17px 32px rgba(54, 39, 25, 0.2), 0 1px 0 rgba(255, 253, 241, 0.7) inset;
+  --widget-accent: #7b5634;
+}
+
+body.theme-paper #taskbar-clock,
+body.theme-paper #music-pill,
+body.theme-paper #pomodoro-pill,
+body.theme-paper #weather-pill,
+body.theme-paper #center-widget.clock-morning #taskbar-clock,
+body.theme-paper #center-widget.clock-afternoon #taskbar-clock,
+body.theme-paper #center-widget.clock-evening #taskbar-clock,
+body.theme-paper #center-widget.clock-night #taskbar-clock,
+body.theme-paper #pomodoro-player.phase-break #pomodoro-pill,
+body.theme-paper #pomodoro-player.phase-long #pomodoro-pill,
+body.theme-paper #weather-widget.weather-night #weather-pill,
+body.theme-paper #weather-widget.weather-storm #weather-pill,
+body.theme-paper #music-player.playing #music-pill {
+  background: var(--widget-bg);
+  border: 1px solid var(--widget-border);
+  box-shadow: var(--widget-shadow);
+  color: var(--text-primary);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+body.theme-paper #taskbar-clock::before,
+body.theme-paper #desktop.widget-layout-vertical .weather-detail,
+body.theme-paper #desktop.widget-layout-vertical #pomodoro-ring-wrap,
+body.theme-paper #desktop.widget-layout-vertical #music-shuffle,
+body.theme-paper #desktop.widget-layout-vertical #music-repeat,
+body.theme-paper #desktop.widget-layout-vertical #music-prev,
+body.theme-paper #desktop.widget-layout-vertical #music-next,
+body.theme-paper #desktop.widget-layout-vertical #pomodoro-skip,
+body.theme-paper #desktop.widget-layout-vertical #pomodoro-reset,
+body.theme-paper #desktop.widget-layout-vertical #weather-refresh {
+  background: rgba(212, 187, 137, 0.38);
+  border-color: rgba(54, 39, 25, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 253, 241, 0.56), inset 0 2px 8px rgba(54, 39, 25, 0.08);
+}
+
+body.theme-paper #clock-time,
+body.theme-paper #desktop.widget-layout-horizontal #clock-time,
+body.theme-paper #desktop.widget-layout-horizontal #weather-temp,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-time,
+body.theme-paper #desktop.widget-layout-vertical #clock-time,
+body.theme-paper #desktop.widget-layout-vertical #weather-temp,
+body.theme-paper #desktop.widget-layout-vertical #pomodoro-time,
+body.theme-paper #desktop.widget-layout-vertical #music-track-label {
+  color: var(--text-primary);
+}
+
+body.theme-paper #clock-date,
+body.theme-paper #music-track-label,
+body.theme-paper #music-time,
+body.theme-paper #pomodoro-sessions,
+body.theme-paper .weather-updated,
+body.theme-paper #weather-location,
+body.theme-paper #desktop.widget-layout-horizontal #clock-date,
+body.theme-paper #desktop.widget-layout-horizontal #music-track-label,
+body.theme-paper #desktop.widget-layout-horizontal #music-time,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-sessions,
+body.theme-paper #desktop.widget-layout-horizontal .weather-updated,
+body.theme-paper #desktop.widget-layout-vertical #clock-date,
+body.theme-paper #desktop.widget-layout-vertical #music-time,
+body.theme-paper #desktop.widget-layout-vertical #pomodoro-sessions,
+body.theme-paper #desktop.widget-layout-vertical .weather-updated,
+body.theme-paper #desktop.widget-layout-vertical .weather-detail {
+  color: var(--text-secondary);
+}
+
+body.theme-paper #pomodoro-ring-icon,
+body.theme-paper #pomodoro-player.running #pomodoro-ring-icon,
+body.theme-paper #pomodoro-mode,
+body.theme-paper #weather-temp:hover,
+body.theme-paper #weather-desc,
+body.theme-paper #desktop.widget-layout-vertical #music-track-label,
+body.theme-paper #desktop.widget-layout-vertical #weather-location,
+body.theme-paper #desktop.widget-layout-vertical #weather-desc,
+body.theme-paper #desktop.widget-layout-vertical #pomodoro-mode,
+body.theme-paper #desktop.widget-layout-vertical #pomodoro-player.phase-break #pomodoro-mode,
+body.theme-paper #desktop.widget-layout-vertical #pomodoro-player.phase-long #pomodoro-mode {
+  color: var(--widget-accent);
+}
+
+body.theme-paper #music-toggle,
+body.theme-paper #pomodoro-toggle,
+body.theme-paper #desktop.widget-layout-horizontal #music-toggle,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-toggle,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-player.phase-break #pomodoro-toggle,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-player.phase-long #pomodoro-toggle,
+body.theme-paper #desktop.widget-layout-vertical #music-toggle,
+body.theme-paper #desktop.widget-layout-vertical #pomodoro-toggle,
+body.theme-paper #desktop.widget-layout-vertical #pomodoro-player.phase-break #pomodoro-toggle,
+body.theme-paper #desktop.widget-layout-vertical #pomodoro-player.phase-long #pomodoro-toggle {
+  background: #312419;
+  color: #fff2d4;
+  box-shadow: 0 11px 20px rgba(54, 39, 25, 0.22), inset 0 1px 0 rgba(255, 253, 241, 0.14);
+}
+
+body.theme-paper #music-progress,
+body.theme-paper #desktop.widget-layout-horizontal #music-progress,
+body.theme-paper #desktop.widget-layout-horizontal #music-volume,
+body.theme-paper #desktop.widget-layout-vertical #music-progress,
+body.theme-paper #desktop.widget-layout-vertical #music-volume {
+  background: rgba(68, 50, 33, 0.13);
+  box-shadow: inset 0 1px 0 rgba(255, 253, 241, 0.4), inset 0 2px 7px rgba(54, 39, 25, 0.12);
+}
+
+body.theme-paper #music-progress-fill,
+body.theme-paper #music-player.playing #music-progress-fill,
+body.theme-paper #desktop.widget-layout-horizontal #music-progress-fill,
+body.theme-paper #desktop.widget-layout-horizontal #music-player.playing #music-progress-fill,
+body.theme-paper #desktop.widget-layout-vertical #music-progress-fill,
+body.theme-paper #desktop.widget-layout-vertical #music-player.playing #music-progress-fill {
+  background: linear-gradient(90deg, #6b4a2d, #a27342);
+}
+
+body.theme-paper #desktop.widget-layout-horizontal #music-volume::-webkit-slider-thumb,
+body.theme-paper #desktop.widget-layout-horizontal #music-volume::-moz-range-thumb,
+body.theme-paper #desktop.widget-layout-vertical #music-volume::-webkit-slider-thumb,
+body.theme-paper #desktop.widget-layout-vertical #music-volume::-moz-range-thumb {
+  background: #7b5634;
+  box-shadow: 0 0 0 2px rgba(255, 244, 218, 0.72), 0 4px 10px rgba(54, 39, 25, 0.2);
+}
+
+body.theme-paper #desktop.widget-layout-horizontal,
+body.theme-paper #desktop.widget-layout-vertical {
+  --compact-ink: 34 27 20;
+  --compact-muted: 68 50 33;
+  --compact-panel: 247 236 206;
+  --compact-panel-deep: 229 208 168;
+  --compact-accent: 123 86 52;
+  --widget-paper: rgba(255, 249, 229, 0.9);
+  --widget-paper-deep: rgba(230, 210, 170, 0.82);
+  --widget-paper-border: rgba(54, 39, 25, 0.22);
+  --widget-paper-ink: rgba(34, 27, 20, 0.97);
+  --widget-paper-muted: rgba(68, 50, 33, 0.64);
+  --widget-paper-accent: #7b5634;
+  --widget-paper-green: #536f45;
+  --widget-paper-gold: #9a6d22;
+  --widget-paper-shadow: 0 17px 32px rgba(54, 39, 25, 0.2), 0 1px 0 rgba(255, 253, 241, 0.7) inset;
+}
+
+body.theme-paper #desktop.widget-layout-horizontal #music-pill:hover,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-pill:hover,
+body.theme-paper #desktop.widget-layout-horizontal #weather-pill:hover,
+body.theme-paper #desktop.widget-layout-vertical #music-pill,
+body.theme-paper #desktop.widget-layout-vertical #weather-pill,
+body.theme-paper #desktop.widget-layout-vertical #pomodoro-pill,
+body.theme-paper #desktop.widget-layout-vertical #music-pill:hover,
+body.theme-paper #desktop.widget-layout-vertical #weather-pill:hover,
+body.theme-paper #desktop.widget-layout-vertical #pomodoro-pill:hover,
+body.theme-paper #desktop.widget-layout-vertical #taskbar-clock {
+  background:
+    radial-gradient(circle at 16% 12%, rgba(255, 255, 246, 0.62), transparent 34%),
+    linear-gradient(135deg, var(--widget-paper), var(--widget-paper-deep));
+  border-color: var(--widget-paper-border);
+  box-shadow: var(--widget-paper-shadow);
+  color: var(--text-primary);
+}
+
+body.theme-paper #desktop.widget-layout-horizontal #music-pill:hover,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-pill:hover,
+body.theme-paper #desktop.widget-layout-horizontal #weather-pill:hover,
+body.theme-paper #desktop.widget-layout-vertical #music-pill:hover,
+body.theme-paper #desktop.widget-layout-vertical #weather-pill:hover,
+body.theme-paper #desktop.widget-layout-vertical #pomodoro-pill:hover {
+  background:
+    radial-gradient(circle at 16% 12%, rgba(255, 255, 246, 0.72), transparent 34%),
+    linear-gradient(135deg, rgba(255, 251, 236, 0.94), rgba(233, 214, 176, 0.88));
+  border-color: rgba(54, 39, 25, 0.28);
+  box-shadow: 0 20px 36px rgba(54, 39, 25, 0.22), 0 1px 0 rgba(255, 253, 241, 0.76) inset;
+}
+
+body.theme-paper #desktop.widget-layout-horizontal #center-widget,
+body.theme-paper #desktop.widget-layout-horizontal #music-player,
+body.theme-paper #desktop.widget-layout-horizontal #weather-widget,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-player,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-player.phase-break,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-player.phase-long {
+  --compact-accent: 123 86 52;
+}
+
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-player.phase-break {
+  --compact-accent: 83 111 69;
+}
+
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-player.phase-long {
+  --compact-accent: 154 109 34;
+}
+
+body.theme-paper #desktop.widget-layout-horizontal #taskbar-clock,
+body.theme-paper #desktop.widget-layout-horizontal #music-pill,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-pill,
+body.theme-paper #desktop.widget-layout-horizontal #weather-pill,
+body.theme-paper #desktop.widget-layout-horizontal #center-widget.clock-morning #taskbar-clock,
+body.theme-paper #desktop.widget-layout-horizontal #center-widget.clock-afternoon #taskbar-clock,
+body.theme-paper #desktop.widget-layout-horizontal #center-widget.clock-evening #taskbar-clock,
+body.theme-paper #desktop.widget-layout-horizontal #center-widget.clock-night #taskbar-clock,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-player.phase-break #pomodoro-pill,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-player.phase-long #pomodoro-pill,
+body.theme-paper #desktop.widget-layout-horizontal #weather-widget.weather-night #weather-pill,
+body.theme-paper #desktop.widget-layout-horizontal #weather-widget.weather-storm #weather-pill,
+body.theme-paper #desktop.widget-layout-horizontal #music-player.playing #music-pill {
+  background:
+    radial-gradient(circle at 16% 8%, rgba(255, 255, 246, 0.58), transparent 36%),
+    linear-gradient(135deg, rgba(255, 249, 229, 0.9), rgba(230, 210, 170, 0.82));
+  border-color: rgba(54, 39, 25, 0.22);
+  box-shadow: 0 17px 32px rgba(54, 39, 25, 0.2), 0 1px 0 rgba(255, 253, 241, 0.7) inset;
+  color: rgba(34, 27, 20, 0.97);
+  outline-color: rgba(54, 39, 25, 0.10);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+body.theme-paper #desktop.widget-layout-horizontal #music-player.playing #music-pill,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-player.running #pomodoro-pill,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-player.running.phase-break #pomodoro-pill,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-player.running.phase-long #pomodoro-pill {
+  border-color: rgb(var(--compact-accent) / 0.42);
+  box-shadow: 0 17px 32px rgba(54, 39, 25, 0.2), 0 0 0 1px rgb(var(--compact-accent) / 0.16), 0 1px 0 rgba(255, 253, 241, 0.7) inset;
+}
+
+body.theme-paper #desktop.widget-layout-horizontal #clock-time,
+body.theme-paper #desktop.widget-layout-horizontal #weather-temp,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-time,
+body.theme-paper #desktop.widget-layout-horizontal #music-track-label {
+  color: rgba(34, 27, 20, 0.97);
+  text-shadow: 0 1px 0 rgba(255, 253, 241, 0.48), 0 8px 16px rgba(54, 39, 25, 0.14);
+}
+
+body.theme-paper #desktop.widget-layout-horizontal #clock-date,
+body.theme-paper #desktop.widget-layout-horizontal #music-time,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-sessions,
+body.theme-paper #desktop.widget-layout-horizontal .weather-updated,
+body.theme-paper #desktop.widget-layout-horizontal #weather-location {
+  color: rgba(68, 50, 33, 0.64);
+}
+
+body.theme-paper #desktop.widget-layout-horizontal #weather-desc,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-mode,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-player.phase-break #pomodoro-mode,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-player.phase-long #pomodoro-mode,
+body.theme-paper #desktop.widget-layout-horizontal #weather-temp:hover,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-progress-circle,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-player.phase-break #pomodoro-progress-circle,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-player.phase-long #pomodoro-progress-circle,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-ring-icon,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-player.running #pomodoro-ring-icon,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-player.running.phase-break #pomodoro-ring-icon,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-player.running.phase-long #pomodoro-ring-icon {
+  color: rgb(var(--compact-accent) / 0.96);
+  stroke: rgb(var(--compact-accent) / 0.96);
+}
+
+body.theme-paper #desktop.widget-layout-horizontal #music-toggle,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-toggle,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-player.phase-break #pomodoro-toggle,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-player.phase-long #pomodoro-toggle {
+  background: #312419;
+  color: #fff2d4;
+  box-shadow: 0 10px 18px rgba(54, 39, 25, 0.22), inset 0 1px 0 rgba(255, 253, 241, 0.14);
+}
+
+body.theme-paper #desktop.widget-layout-horizontal #music-toggle:hover,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-toggle:hover,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-player.phase-break #pomodoro-toggle:hover,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-player.phase-long #pomodoro-toggle:hover {
+  background: #3f2b1c;
+}
+
+body.theme-paper #desktop.widget-layout-horizontal #music-shuffle,
+body.theme-paper #desktop.widget-layout-horizontal #music-repeat,
+body.theme-paper #desktop.widget-layout-horizontal #music-prev,
+body.theme-paper #desktop.widget-layout-horizontal #music-next,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-skip,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-reset,
+body.theme-paper #desktop.widget-layout-horizontal #weather-refresh {
+  background: rgba(255, 252, 239, 0.42);
+  border-color: rgba(54, 39, 25, 0.16);
+  color: rgba(68, 50, 33, 0.62);
+  box-shadow: inset 0 1px 0 rgba(255, 253, 241, 0.54), inset 0 2px 8px rgba(54, 39, 25, 0.08);
+}
+
+body.theme-paper #desktop.widget-layout-horizontal #music-shuffle:hover,
+body.theme-paper #desktop.widget-layout-horizontal #music-repeat:hover,
+body.theme-paper #desktop.widget-layout-horizontal #music-prev:hover,
+body.theme-paper #desktop.widget-layout-horizontal #music-next:hover,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-skip:hover,
+body.theme-paper #desktop.widget-layout-horizontal #pomodoro-reset:hover,
+body.theme-paper #desktop.widget-layout-horizontal #weather-refresh:hover,
+body.theme-paper #desktop.widget-layout-horizontal #music-shuffle.active,
+body.theme-paper #desktop.widget-layout-horizontal #music-repeat.active {
+  background: rgb(var(--compact-accent) / 0.12);
+  color: rgb(var(--compact-accent) / 0.96);
+  box-shadow: inset 0 0 0 1px rgb(var(--compact-accent) / 0.18), inset 0 2px 8px rgba(54, 39, 25, 0.08);
+}
+
+body.theme-paper #desktop.widget-layout-horizontal #music-progress,
+body.theme-paper #desktop.widget-layout-horizontal #music-volume {
+  background: rgba(68, 50, 33, 0.13);
+  box-shadow: inset 0 1px 0 rgba(255, 253, 241, 0.4), inset 0 2px 7px rgba(54, 39, 25, 0.12);
+}
+
+body.theme-paper #desktop.widget-layout-horizontal #music-progress-fill,
+body.theme-paper #desktop.widget-layout-horizontal #music-player.playing #music-progress-fill,
+body.theme-paper #desktop.widget-layout-horizontal #music-volume::-webkit-slider-thumb,
+body.theme-paper #desktop.widget-layout-horizontal #music-volume::-moz-range-thumb {
+  background: rgb(var(--compact-accent) / 0.94);
+}
+
+body.theme-paper #weather-pill,
+body.theme-paper #desktop.widget-layout-horizontal #weather-pill,
+body.theme-paper #desktop.widget-layout-vertical #weather-pill,
+body.theme-paper #desktop.widget-layout-horizontal #weather-widget.weather-night #weather-pill,
+body.theme-paper #desktop.widget-layout-horizontal #weather-widget.weather-storm #weather-pill,
+body.theme-paper #desktop.widget-layout-vertical #weather-widget.weather-night #weather-pill,
+body.theme-paper #desktop.widget-layout-vertical #weather-widget.weather-storm #weather-pill {
+  background:
+    radial-gradient(circle at 16% 12%, rgba(255, 255, 246, 0.62), transparent 34%),
+    linear-gradient(135deg, var(--widget-paper), var(--widget-paper-deep));
+  border-color: var(--widget-paper-border);
+  box-shadow: var(--widget-paper-shadow);
+  color: var(--widget-paper-ink);
+}
+
+body.theme-paper #desktop.widget-layout-horizontal #weather-pill:hover,
+body.theme-paper #desktop.widget-layout-vertical #weather-pill:hover {
+  background:
+    radial-gradient(circle at 16% 12%, rgba(255, 255, 246, 0.72), transparent 34%),
+    linear-gradient(135deg, rgba(255, 251, 236, 0.94), rgba(233, 214, 176, 0.88));
+  border-color: rgba(54, 39, 25, 0.28);
+  box-shadow: 0 20px 36px rgba(54, 39, 25, 0.22), 0 1px 0 rgba(255, 253, 241, 0.76) inset;
+}
+
+body.theme-paper #weather-temp,
+body.theme-paper #desktop.widget-layout-horizontal #weather-temp,
+body.theme-paper #desktop.widget-layout-vertical #weather-temp {
+  color: rgba(30, 24, 18, 0.98);
+  text-shadow: 0 1px 0 rgba(255, 253, 241, 0.34), 0 6px 12px rgba(54, 39, 25, 0.14);
+}
+
+body.theme-paper #weather-desc,
+body.theme-paper #desktop.widget-layout-horizontal #weather-desc,
+body.theme-paper #desktop.widget-layout-vertical #weather-desc,
+body.theme-paper #weather-temp:hover,
+body.theme-paper #desktop.widget-layout-horizontal #weather-temp:hover,
+body.theme-paper #desktop.widget-layout-vertical #weather-temp:hover {
+  color: #553a24;
+}
+
+body.theme-paper #weather-location,
+body.theme-paper .weather-updated,
+body.theme-paper #desktop.widget-layout-horizontal #weather-location,
+body.theme-paper #desktop.widget-layout-horizontal .weather-updated,
+body.theme-paper #desktop.widget-layout-vertical #weather-location,
+body.theme-paper #desktop.widget-layout-vertical .weather-updated,
+body.theme-paper #desktop.widget-layout-vertical .weather-detail {
+  color: rgba(61, 45, 31, 0.70);
+}
+
+body.theme-paper #desktop.widget-layout-vertical .weather-detail {
+  background: rgba(121, 84, 48, 0.08);
+  border-color: rgba(54, 39, 25, 0.16);
+}
+
+body.theme-paper #weather-refresh,
+body.theme-paper #desktop.widget-layout-horizontal #weather-refresh,
+body.theme-paper #desktop.widget-layout-vertical #weather-refresh {
+  background: rgba(121, 84, 48, 0.10);
+  border-color: rgba(54, 39, 25, 0.18);
+  color: rgba(61, 45, 31, 0.72);
+}
+
+body.theme-paper #weather-refresh:hover,
+body.theme-paper #desktop.widget-layout-horizontal #weather-refresh:hover,
+body.theme-paper #desktop.widget-layout-vertical #weather-refresh:hover {
+  background: rgba(121, 84, 48, 0.16);
+  color: #332419;
 }
