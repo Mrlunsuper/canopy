@@ -28,26 +28,49 @@
       <button id="btn-settings" class="fab" title="Settings"><i data-lucide="settings"></i></button>
     </div>
 
-    <!-- Music Player -->
-    <div id="music-player" class="hidden">
+    <!-- Audio Player -->
+    <div id="audio-player" class="hidden mode-music">
       <audio id="music-audio" preload="auto"></audio>
-      <div id="music-pill">
-        <div class="widget-header">
-          <span id="music-track-label"></span>
+      <div id="audio-pill">
+        <div id="audio-mode-switch" role="group" aria-label="Audio mode">
+          <button class="audio-mode-btn active" data-audio-mode="music" type="button" aria-pressed="true"><i data-lucide="music"></i> Music</button>
+          <button class="audio-mode-btn" data-audio-mode="ambient" type="button" aria-pressed="false"><i data-lucide="waves"></i> Ambient</button>
         </div>
-        <div class="widget-controls">
-          <button id="music-shuffle" title="Shuffle off"><i data-lucide="shuffle"></i></button>
-          <button id="music-prev" title="Previous track"><i data-lucide="chevron-left"></i></button>
-          <button id="music-toggle" title="Play"><i data-lucide="play"></i></button>
-          <button id="music-next" title="Next track"><i data-lucide="chevron-right"></i></button>
-          <button id="music-repeat" title="Repeat off"><i data-lucide="repeat"></i></button>
+        <div id="audio-panel-music" class="audio-panel">
+          <div class="widget-header">
+            <span id="music-track-label">Music</span>
+          </div>
+          <div class="widget-controls">
+            <button id="music-shuffle" title="Shuffle off"><i data-lucide="shuffle"></i></button>
+            <button id="music-prev" title="Previous track"><i data-lucide="chevron-left"></i></button>
+            <button id="music-toggle" title="Play"><i data-lucide="play"></i></button>
+            <button id="music-next" title="Next track"><i data-lucide="chevron-right"></i></button>
+            <button id="music-repeat" title="Repeat off"><i data-lucide="repeat"></i></button>
+          </div>
+          <div class="widget-meta">
+            <span id="music-time">--:-- / --:--</span>
+            <input type="range" id="music-volume" min="0" max="100" value="75" />
+          </div>
+          <div id="music-progress">
+            <div id="music-progress-fill"></div>
+          </div>
+          <div id="music-card-list" aria-label="Music tracks"></div>
         </div>
-        <div class="widget-meta">
-          <span id="music-time">--:-- / --:--</span>
-          <input type="range" id="music-volume" min="0" max="100" value="75" />
-        </div>
-        <div id="music-progress">
-          <div id="music-progress-fill"></div>
+        <div id="audio-panel-ambient" class="audio-panel hidden">
+          <div class="widget-header">
+            <span id="ambient-icon"><i data-lucide="waves"></i></span>
+            <span id="ambient-label">Ambient</span>
+            <span id="ambient-count" title="Active sounds">0</span>
+          </div>
+          <div class="widget-controls">
+            <button id="ambient-toggle" title="Play ambient sounds"><i data-lucide="play"></i></button>
+            <button id="ambient-expand" title="Show mixer"><i data-lucide="sliders-horizontal"></i></button>
+          </div>
+          <div class="widget-meta">
+            <span id="ambient-status">Sync sounds</span>
+            <input type="range" id="ambient-master-volume" min="0" max="100" value="70" title="Master volume" />
+          </div>
+          <div id="ambient-sound-list"></div>
         </div>
       </div>
     </div>
@@ -186,8 +209,11 @@
 
   <div id="settings-panel" class="hidden">
     <div id="settings-header">
-      <h2><i data-lucide="settings"></i> Settings</h2>
-      <button id="settings-close"><i data-lucide="x"></i></button>
+      <div id="settings-title">
+        <h2><i data-lucide="settings"></i> Settings</h2>
+        <p>Customize your Canopy desktop</p>
+      </div>
+      <button id="settings-close" aria-label="Close settings"><i data-lucide="x"></i></button>
     </div>
     <div id="settings-body">
       <nav id="settings-sidebar">
@@ -201,8 +227,8 @@
         <button class="settings-nav-item" data-section="widgets">
           <i data-lucide="layout-dashboard"></i> Widgets
         </button>
-        <button class="settings-nav-item" data-section="music">
-          <i data-lucide="music"></i> Music
+        <button class="settings-nav-item" data-section="audio">
+          <i data-lucide="music"></i> Audio
         </button>
         <button class="settings-nav-item" data-section="timer">
           <i data-lucide="timer"></i> Timer
@@ -294,8 +320,8 @@
                 <button class="settings-btn compact widget-collapse-toggle" data-widget-collapse-id="clock" type="button">
                   <i data-lucide="clock"></i> Clock
                 </button>
-                <button class="settings-btn compact widget-collapse-toggle" data-widget-collapse-id="music" type="button">
-                  <i data-lucide="music"></i> Music
+                <button class="settings-btn compact widget-collapse-toggle" data-widget-collapse-id="audio" type="button">
+                  <i data-lucide="music"></i> Audio
                 </button>
                 <button class="settings-btn compact widget-collapse-toggle" data-widget-collapse-id="weather" type="button">
                   <i data-lucide="cloud-sun"></i> Weather
@@ -311,8 +337,8 @@
                 <button class="settings-btn compact widget-visibility-toggle" data-widget-id="clock" type="button">
                   <i data-lucide="clock"></i> Clock
                 </button>
-                <button class="settings-btn compact widget-visibility-toggle" data-widget-id="music" type="button">
-                  <i data-lucide="music"></i> Music
+                <button class="settings-btn compact widget-visibility-toggle" data-widget-id="audio" type="button">
+                  <i data-lucide="music"></i> Audio
                 </button>
                 <button class="settings-btn compact widget-visibility-toggle" data-widget-id="weather" type="button">
                   <i data-lucide="cloud-sun"></i> Weather
@@ -328,9 +354,9 @@
           </section>
         </div>
 
-        <div id="settings-music" class="settings-content-panel">
+        <div id="settings-audio" class="settings-content-panel">
           <section class="settings-section">
-            <h3><i data-lucide="music"></i> Music Player</h3>
+            <h3><i data-lucide="music"></i> Music Library</h3>
             <div id="music-r2-config">
               <button id="music-sync-btn" class="settings-btn"><i data-lucide="refresh-cw"></i> Sync from R2</button>
             </div>
@@ -341,6 +367,16 @@
               <button id="music-add-btn" class="settings-btn"><i data-lucide="plus"></i> Add track</button>
             </div>
             <button id="music-reset-defaults" class="settings-btn">Reset to defaults</button>
+          </section>
+          <section class="settings-section">
+            <h3><i data-lucide="waves"></i> Ambient Sounds</h3>
+            <div id="ambient-r2-config">
+              <input type="url" id="ambient-index-url" placeholder="https://r2-music-api.larx-update.workers.dev/api/ambient" />
+              <button id="ambient-sync-btn" class="settings-btn"><i data-lucide="refresh-cw"></i> Sync from R2</button>
+            </div>
+            <div id="ambient-settings-list"></div>
+            <button id="ambient-reset" class="settings-btn">Clear ambient sounds</button>
+            <p class="settings-info dim">Expected JSON: [{ "id", "name", "icon", "url", "defaultVolume" }]</p>
           </section>
         </div>
 

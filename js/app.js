@@ -15,7 +15,7 @@ import { ModalManager }       from './ModalManager.js';
 import { BookmarkImporter }   from './BookmarkImporter.js';
 import { ClockWidget }        from './ClockWidget.js';
 import { CommandPalette }     from './CommandPalette.js';
-import { MusicPlayer }        from './MusicPlayer.js';
+import { AudioPlayer }        from './AudioPlayer.js';
 import { PomodoroTimer }      from './PomodoroTimer.js';
 import { StickyNotesManager } from './StickyNotesManager.js';
 import { WeatherWidget }      from './WeatherWidget.js';
@@ -28,13 +28,13 @@ const THEME_DEFAULT = 'neumorphic';
 const THEME_OPTIONS = ['neumorphic', 'glass', 'paper'];
 const WIDGET_COLLAPSE_DEFAULTS = {
   clock: false,
-  music: false,
+  audio: false,
   weather: false,
   pomodoro: false,
 };
 const WIDGET_VISIBILITY_DEFAULTS = {
   clock: true,
-  music: true,
+  audio: true,
   weather: true,
   pomodoro: true,
   notes: true,
@@ -82,8 +82,8 @@ class CanopyApp {
     this.clock  = new ClockWidget();
     this.commandPalette = new CommandPalette(this.wallhaven);
 
-    // ── Music Player ──
-    this.music = new MusicPlayer();
+    // ── Audio Player ──
+    this.audio = new AudioPlayer();
 
     // ── Pomodoro Timer ──
     this.pomodoro = new PomodoroTimer();
@@ -127,8 +127,8 @@ class CanopyApp {
     // Start clock
     this.clock.startTicking();
 
-    // Init music player
-    this.music.init();
+    // Init audio player
+    this.audio.init();
 
     // Init pomodoro timer
     this.pomodoro.init();
@@ -275,7 +275,7 @@ class CanopyApp {
       toast(`Widget layout: ${layoutLabel}`, 'success');
     }
 
-    this.music?._applySize?.();
+    this.audio?._applySize?.();
     this.weather?._applySize?.();
     this.pomodoro?._applySize?.();
   }
@@ -286,6 +286,9 @@ class CanopyApp {
       const raw = localStorage.getItem(WIDGET_COLLAPSE_KEY);
       if (!raw) return { ...WIDGET_COLLAPSE_DEFAULTS };
       const parsed = JSON.parse(raw);
+      if (parsed.audio === undefined && (parsed.music !== undefined || parsed.ambient !== undefined)) {
+        parsed.audio = parsed.music === true && parsed.ambient === true;
+      }
       return { ...WIDGET_COLLAPSE_DEFAULTS, ...parsed };
     } catch {
       return { ...WIDGET_COLLAPSE_DEFAULTS };
@@ -327,6 +330,9 @@ class CanopyApp {
       const raw = localStorage.getItem(WIDGET_VISIBILITY_KEY);
       if (!raw) return { ...WIDGET_VISIBILITY_DEFAULTS };
       const parsed = JSON.parse(raw);
+      if (parsed.audio === undefined && (parsed.music !== undefined || parsed.ambient !== undefined)) {
+        parsed.audio = parsed.music !== false || parsed.ambient !== false;
+      }
       return { ...WIDGET_VISIBILITY_DEFAULTS, ...parsed };
     } catch {
       return { ...WIDGET_VISIBILITY_DEFAULTS };
@@ -344,7 +350,7 @@ class CanopyApp {
   _widgetElementMap() {
     return {
       clock: document.getElementById('center-widget'),
-      music: document.getElementById('music-player'),
+      audio: document.getElementById('audio-player'),
       weather: document.getElementById('weather-widget'),
       pomodoro: document.getElementById('pomodoro-player'),
       notes: document.getElementById('sticky-notes-layer'),
@@ -848,25 +854,25 @@ class CanopyApp {
         this.commandPalette.hide();
       }
 
-      // ── Music player media keys ──
+      // ── Audio player media keys control music only ──
       if (e.code === 'MediaPlayPause') {
         e.preventDefault();
-        this.music.toggle();
+        this.audio.toggleMusic();
         return;
       }
       if (e.code === 'MediaTrackPrevious') {
         e.preventDefault();
-        this.music.prevTrack();
+        this.audio.prevTrack();
         return;
       }
       if (e.code === 'MediaTrackNext') {
         e.preventDefault();
-        this.music.nextTrack();
+        this.audio.nextTrack();
         return;
       }
       if (e.code === 'MediaStop') {
         e.preventDefault();
-        if (!this.music.audio.paused) this.music.toggle();
+        this.audio.stopMusic();
         return;
       }
       // Preview navigation arrows
@@ -909,7 +915,7 @@ class CanopyApp {
         if (!['INPUT', 'TEXTAREA', 'SELECT'].includes(tag) &&
             !document.activeElement?.isContentEditable) {
           e.preventDefault();
-          this.music.toggle();
+          this.audio.toggleMusic();
         }
       }
     });

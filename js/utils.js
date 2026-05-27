@@ -11,7 +11,9 @@
 
 export const STORAGE_KEY       = 'desktop_tab_data';
 export const WALLPAPER_KEY     = 'desktop_tab_wallpaper';
+export const AUDIO_CONFIG_KEY  = 'audio_config';
 export const MUSIC_CONFIG_KEY  = 'music_config';
+export const AMBIENT_CONFIG_KEY = 'ambient_config';
 export const STICKY_NOTES_KEY  = 'canopy_sticky_notes';
 export const DELETED_NOTES_KEY = 'canopy_deleted_notes';
 export const FAVICON_CACHE_KEY = 'canopy_favicon_cache';

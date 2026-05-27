@@ -68,6 +68,18 @@ function isMusicApiUrl(rawUrl) {
   return Boolean(url && url.origin === MUSIC_API_ORIGIN && url.pathname === '/api/songs');
 }
 
+function isAmbientIndexUrl(rawUrl) {
+  const url = parseHttpsUrl(rawUrl);
+  if (!url) return false;
+  if (url.origin === MUSIC_API_ORIGIN) {
+    return url.pathname === '/api/ambient' || url.pathname === '/api/ambient-sounds';
+  }
+  if (url.origin === MUSIC_INDEX_ORIGIN) {
+    return url.pathname === '/ambient.json' || url.pathname === '/ambient/index.json';
+  }
+  return false;
+}
+
 function sanitizeDownloadFilename(filename) {
   const safeName = typeof filename === 'string' ? filename : 'wallhaven-download.jpg';
   return safeName
@@ -125,6 +137,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'music-sync') {
     if (!isMusicIndexUrl(request.url) && !isMusicApiUrl(request.url)) {
       sendResponse({ ok: false, error: 'Blocked untrusted music URL' });
+      return false;
+    }
+
+    fetchJson(request.url)
+      .then(data => sendResponse({ ok: true, data }))
+      .catch(err => sendResponse({ ok: false, error: err.message }));
+    return true;
+  }
+
+  if (request.type === 'ambient-sync') {
+    if (!isAmbientIndexUrl(request.url)) {
+      sendResponse({ ok: false, error: 'Blocked untrusted ambient URL' });
       return false;
     }
 
