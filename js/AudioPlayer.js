@@ -66,7 +66,6 @@ export class AudioPlayer {
     this.ambientNodes = new Map();
     this._seekDragging = false;
     this._dragState = null;
-    this._resizeState = null;
     this._saveTimer = null;
     this._musicListOpen = false;
   }
@@ -76,13 +75,11 @@ export class AudioPlayer {
     if (this.musicCardList) this.player.appendChild(this.musicCardList);
     await this._loadConfig();
     this._applyPosition();
-    this._applySize();
     this._applyMusicTrack();
     this._updateMusicProgressDisplay();
     this._render();
     this._renderMusicSettingsList();
     this._renderAmbientSettings();
-    this._initResize();
     this._wireEvents();
     this._wireMusicAudioEvents();
     this._checkVisibility();
@@ -431,7 +428,6 @@ export class AudioPlayer {
     return {
       activeMode: 'music',
       position: null,
-      width: null,
       music: this._musicDefaults(),
       ambient: this._ambientDefaults(),
     };
@@ -483,7 +479,6 @@ export class AudioPlayer {
               ...this._defaults(),
               activeMode: oldMusic.tracks?.length ? 'music' : 'ambient',
               position: oldMusic.position || oldAmbient.position || null,
-              width: oldMusic.width || oldAmbient.width || null,
               music: { ...this._musicDefaults(), ...oldMusic },
               ambient: { ...this._ambientDefaults(), ...oldAmbient },
             };
@@ -529,8 +524,6 @@ export class AudioPlayer {
     const ambient = this.config.ambient;
 
     this.config.activeMode = this.config.activeMode === 'ambient' ? 'ambient' : 'music';
-    if (typeof this.config.width !== 'number') this.config.width = null;
-    if (this.config.width !== null) this.config.width = Math.max(300, Math.min(560, this.config.width));
 
     music.tracks = Array.isArray(music.tracks) ? music.tracks : [];
     if (typeof music.currentIndex !== 'number' || music.currentIndex < 0 || music.currentIndex >= music.tracks.length) {
@@ -571,7 +564,6 @@ export class AudioPlayer {
     const data = JSON.stringify({
       activeMode: this.config.activeMode,
       position: this.config.position,
-      width: this.config.width,
       music: this.config.music,
       ambient: {
         indexUrl: this.config.ambient.indexUrl,
@@ -606,59 +598,6 @@ export class AudioPlayer {
     this.player.style.top = this.config.position.y + 'px';
     this.player.style.right = 'auto';
     this.player.style.bottom = 'auto';
-  }
-
-  _applySize() {
-    const isCardLayout = document.getElementById('desktop')?.classList.contains('widget-layout-vertical');
-    this.pill.style.width = isCardLayout && this.config.width ? `${this.config.width}px` : '';
-  }
-
-  _initResize() {
-    const handle = document.createElement('div');
-    handle.className = 'widget-resize-handle';
-    handle.title = 'Drag to resize';
-    this.pill.appendChild(handle);
-
-    handle.addEventListener('pointerdown', e => {
-      if (e.pointerType === 'mouse' && e.button !== 0) return;
-      if (!document.getElementById('desktop')?.classList.contains('widget-layout-vertical')) return;
-      const rect = this.player.getBoundingClientRect();
-      const desktopRect = document.getElementById('desktop').getBoundingClientRect();
-      this.player.style.left = (rect.left - desktopRect.left) + 'px';
-      this.player.style.top = (rect.top - desktopRect.top) + 'px';
-      this.player.style.right = 'auto';
-      this.player.style.bottom = 'auto';
-      this.config.position = {
-        x: parseInt(this.player.style.left, 10),
-        y: parseInt(this.player.style.top, 10),
-      };
-      this._resizeState = {
-        pointerId: e.pointerId,
-        startX: e.clientX,
-        startWidth: this.pill.getBoundingClientRect().width,
-      };
-      handle.setPointerCapture?.(e.pointerId);
-      e.preventDefault();
-      e.stopPropagation();
-    });
-
-    const move = e => {
-      if (!this._resizeState || e.pointerId !== this._resizeState.pointerId) return;
-      this.config.width = Math.max(300, Math.min(560, this._resizeState.startWidth + (e.clientX - this._resizeState.startX)));
-      this._applySize();
-    };
-
-    const end = e => {
-      if (!this._resizeState || e.pointerId !== this._resizeState.pointerId) return;
-      this.config.width = Math.round(this.config.width || this._resizeState.startWidth);
-      this._saveConfig();
-      try { handle.releasePointerCapture?.(this._resizeState.pointerId); } catch {}
-      this._resizeState = null;
-    };
-
-    handle.addEventListener('pointermove', move);
-    handle.addEventListener('pointerup', end);
-    handle.addEventListener('pointercancel', end);
   }
 
   _wireEvents() {

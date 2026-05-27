@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Canopy</title>
   <link rel="stylesheet" href="styles.css" />
-  <link rel="stylesheet" href="widget-themes.css" />
   <script src="lucide.min.js"></script>
 </head>
 
@@ -246,20 +245,6 @@
       <div id="settings-content">
         <div id="settings-appearance" class="settings-content-panel active">
           <section class="settings-section">
-            <h3><i data-lucide="palette"></i> Theme</h3>
-            <div id="theme-settings" class="theme-toggle" role="group" aria-label="Theme">
-              <button class="settings-btn compact theme-option" data-theme="neumorphic" type="button">
-                <i data-lucide="layers-3"></i> Neumorphism
-              </button>
-              <button class="settings-btn compact theme-option" data-theme="glass" type="button">
-                <i data-lucide="sparkles"></i> Liquid Glass
-              </button>
-              <button class="settings-btn compact theme-option" data-theme="paper" type="button">
-                <i data-lucide="notebook-pen"></i> Ink Paper
-              </button>
-            </div>
-          </section>
-          <section class="settings-section">
             <h3><i data-lucide="image"></i> Wallpaper</h3>
             <div id="wallpaper-presets">
               <div class="wp-preset active" data-wp="default" title="Nebula"></div>
@@ -305,32 +290,6 @@
         <div id="settings-widgets" class="settings-content-panel">
           <section class="settings-section">
             <h3><i data-lucide="layout-dashboard"></i> Widgets</h3>
-            <div id="widget-layout-settings">
-              <span class="settings-info">Choose how widget controls are arranged.</span>
-              <div class="widget-layout-toggle" role="group" aria-label="Widget layout">
-                <button class="settings-btn compact widget-layout-option" data-widget-layout="compact" type="button">
-                  <i data-lucide="panel-top"></i> Compact
-                </button>
-                <button class="settings-btn compact widget-layout-option" data-widget-layout="card" type="button">
-                  <i data-lucide="panel-left"></i> Card
-                </button>
-              </div>
-              <span class="settings-info">Collapse individual widgets in Compact layout.</span>
-              <div class="widget-collapse-grid" role="group" aria-label="Widget collapse">
-                <button class="settings-btn compact widget-collapse-toggle" data-widget-collapse-id="clock" type="button">
-                  <i data-lucide="clock"></i> Clock
-                </button>
-                <button class="settings-btn compact widget-collapse-toggle" data-widget-collapse-id="audio" type="button">
-                  <i data-lucide="music"></i> Audio
-                </button>
-                <button class="settings-btn compact widget-collapse-toggle" data-widget-collapse-id="weather" type="button">
-                  <i data-lucide="cloud-sun"></i> Weather
-                </button>
-                <button class="settings-btn compact widget-collapse-toggle" data-widget-collapse-id="pomodoro" type="button">
-                  <i data-lucide="timer"></i> Pomodoro
-                </button>
-              </div>
-            </div>
             <div id="widget-visibility-settings">
               <span class="settings-info">Show or hide floating widgets.</span>
               <div class="widget-visibility-grid" role="group" aria-label="Widget visibility">

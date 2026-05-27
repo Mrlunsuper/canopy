@@ -34,6 +34,7 @@ export class DesktopRenderer {
   render(force = false) {
     const grid = document.getElementById('desktop-grid');
     const existingEls = new Map();
+    const iconRefreshEls = [];
     Array.from(grid.children).forEach(c => {
       if (c.dataset.id) existingEls.set(c.dataset.id, c);
     });
@@ -58,6 +59,14 @@ export class DesktopRenderer {
           label.textContent = item.title || item.url || 'Shortcut';
           label.title = item.title || '';
         }
+        if (item.type === 'folder') {
+          const wrap = existing.querySelector('.icon-img-wrap');
+          if (wrap) {
+            wrap.innerHTML = '';
+            this._buildFolderVisual(item, wrap);
+            iconRefreshEls.push(existing);
+          }
+        }
       } else {
         const el = this.createIconElement(item);
         el.style.left = item.position.x + 'px';
@@ -66,13 +75,14 @@ export class DesktopRenderer {
       }
     });
 
-    // Only create icons for newly added elements
+    // Create Lucide icons for new elements and refreshed folder previews.
     const newEls = this.storage.data.items
       .filter(item => !existingEls.has(item.id))
       .map(item => grid.querySelector(`.desktop-icon[data-id="${item.id}"]`))
       .filter(Boolean);
-    if (newEls.length > 0 && typeof lucide !== 'undefined') {
-      lucide.createIcons({ nodes: newEls });
+    iconRefreshEls.push(...newEls);
+    if (iconRefreshEls.length > 0 && typeof lucide !== 'undefined') {
+      lucide.createIcons({ nodes: iconRefreshEls });
     }
 
     // Warm up favicon cache in background
@@ -202,12 +212,15 @@ export class DesktopRenderer {
 
   /** @private */
   _initIconEvents(el, item, isInFolder, label) {
+    const getCurrentItem = () => this.storage.findItem(item.id);
+
     if (isInFolder) {
       // In-folder: double-click to open (single click is reserved for drag)
       el.addEventListener('dblclick', e => {
         if (e.target.closest('.icon-label')) return; // handled by label dblclick
         e.stopPropagation();
-        this.onIconOpen(item);
+        const currentItem = getCurrentItem();
+        if (currentItem) this.onIconOpen(currentItem);
       });
     } else {
       // Desktop: single click on icon image to open, but NOT on label
@@ -218,7 +231,8 @@ export class DesktopRenderer {
           this.selectIcon(el);
           return;
         }
-        this.onIconOpen(item);
+        const currentItem = getCurrentItem();
+        if (currentItem) this.onIconOpen(currentItem);
       });
     }
 
@@ -234,7 +248,8 @@ export class DesktopRenderer {
       e.preventDefault();
       e.stopPropagation();
       this.selectIcon(el);
-      this.onIconContext(e.clientX, e.clientY, item);
+      const currentItem = getCurrentItem();
+      if (currentItem) this.onIconContext(e.clientX, e.clientY, currentItem);
     });
 
     // Drag
@@ -487,10 +502,12 @@ export class DesktopRenderer {
    * @param {string} id 
    */
   moveItemToDesktop(id, pos) {
+    const parentList = this.storage.findParentList(id);
     const item = this.storage.removeItem(id);
     if (item) {
       item.position = pos || this.findFreePosition();
       this.storage.data.items.push(item);
+      this.storage.removeEmptyFolderForList(parentList);
       this.storage.saveData();
       this.render();
 

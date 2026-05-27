@@ -116,6 +116,44 @@ export class StorageManager {
   }
 
   /**
+   * Recursively find the folder that owns a child list.
+   * @param {Array} targetList
+   * @param {Array} [list]
+   * @returns {object|null}
+   */
+  findFolderContainingList(targetList, list = this.data.items) {
+    for (const item of list) {
+      if (item.children === targetList) return item;
+      if (item.children?.length) {
+        const found = this.findFolderContainingList(targetList, item.children);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Remove the folder that owns this list if it is now empty.
+   * @param {Array|null} list
+   * @returns {object|null} The removed folder
+   */
+  removeEmptyFolderForList(list) {
+    if (!list || list === this.data.items || list.length > 0) return null;
+
+    const folder = this.findFolderContainingList(list);
+    if (!folder) return null;
+
+    const folderParentList = this.findParentList(folder.id);
+    const removed = this.removeItem(folder.id);
+
+    if (folderParentList && folderParentList !== this.data.items && folderParentList.length === 0) {
+      this.removeEmptyFolderForList(folderParentList);
+    }
+
+    return removed;
+  }
+
+  /**
    * Remove an item by ID from wherever it is (desktop or inside a folder).
    * @param {string} id
    * @returns {object|null} The removed item

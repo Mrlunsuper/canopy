@@ -20,18 +20,7 @@ import { PomodoroTimer }      from './PomodoroTimer.js';
 import { StickyNotesManager } from './StickyNotesManager.js';
 import { WeatherWidget }      from './WeatherWidget.js';
 
-const WIDGET_LAYOUT_KEY = 'canopy_widget_layout';
-const WIDGET_COLLAPSE_KEY = 'canopy_widget_collapse';
 const WIDGET_VISIBILITY_KEY = 'canopy_widget_visibility';
-const THEME_KEY = 'canopy_theme';
-const THEME_DEFAULT = 'neumorphic';
-const THEME_OPTIONS = ['neumorphic', 'glass', 'paper'];
-const WIDGET_COLLAPSE_DEFAULTS = {
-  clock: false,
-  audio: false,
-  weather: false,
-  pomodoro: false,
-};
 const WIDGET_VISIBILITY_DEFAULTS = {
   clock: true,
   audio: true,
@@ -95,7 +84,6 @@ class CanopyApp {
     this.stickyNotes = new StickyNotesManager();
 
     this.widgetVisibility = { ...WIDGET_VISIBILITY_DEFAULTS };
-    this.widgetCollapse = { ...WIDGET_COLLAPSE_DEFAULTS };
   }
 
   // ═══════════════════════════════════════════════
@@ -109,9 +97,6 @@ class CanopyApp {
     // Load favicon cache
     await this.faviconCache.init();
 
-    // Apply saved visual theme before wallpaper/widgets paint.
-    this._applyTheme(this._loadTheme(), false);
-
     // Load and apply wallpaper
     const wp = await this.storage.loadWallpaper();
     if (wp) this.wallpaper.apply(wp);
@@ -119,9 +104,7 @@ class CanopyApp {
     // Render desktop
     this.renderer.render();
 
-    // Apply saved widget layout before widgets paint
-    this._applyWidgetLayout(this._loadWidgetLayout(), false);
-    this._applyWidgetCollapse(this._loadWidgetCollapse(), false);
+    // Apply saved widget visibility before widgets paint
     this._applyWidgetVisibility(this._loadWidgetVisibility(), false);
 
     // Start clock
@@ -169,10 +152,13 @@ class CanopyApp {
    * @private
    */
   _openItem(item) {
-    if (item.type === 'folder') {
-      this.modals.openFolderOverlay(item);
-    } else if (item.url) {
-      const safeUrl = normalizeShortcutUrl(item.url);
+    const currentItem = this.storage.findItem(item.id);
+    if (!currentItem) return;
+
+    if (currentItem.type === 'folder') {
+      this.modals.openFolderOverlay(currentItem);
+    } else if (currentItem.url) {
+      const safeUrl = normalizeShortcutUrl(currentItem.url);
       if (!safeUrl) {
         toast('Blocked unsafe shortcut URL', 'error');
         return;
@@ -193,136 +179,6 @@ class CanopyApp {
   //  SETTINGS (Export / Import / Reset)
   // ═══════════════════════════════════════════════
 
-
-  /** @private */
-  _loadTheme() {
-    try {
-      const saved = localStorage.getItem(THEME_KEY);
-      return THEME_OPTIONS.includes(saved) ? saved : THEME_DEFAULT;
-    } catch {
-      return THEME_DEFAULT;
-    }
-  }
-
-  /**
-   * Apply the selected visual theme globally.
-   * @param {string} theme
-   * @param {boolean} persist
-   * @private
-   */
-  _applyTheme(theme, persist = true) {
-    const nextTheme = THEME_OPTIONS.includes(theme) ? theme : THEME_DEFAULT;
-    const themeLabels = {
-      neumorphic: 'Neumorphism',
-      glass: 'Liquid Glass',
-      paper: 'Ink Paper',
-    };
-    const themeLabel = themeLabels[nextTheme];
-
-    document.body.classList.remove(...THEME_OPTIONS.map(name => `theme-${name}`));
-    document.body.classList.add(`theme-${nextTheme}`);
-
-    document.querySelectorAll('.theme-option').forEach(btn => {
-      const active = btn.dataset.theme === nextTheme;
-      btn.classList.toggle('active', active);
-      btn.setAttribute('aria-pressed', String(active));
-    });
-
-    if (persist) {
-      try { localStorage.setItem(THEME_KEY, nextTheme); } catch {}
-      toast(`Theme: ${themeLabel}`, 'success');
-    }
-  }
-
-
-  /** @private */
-  _loadWidgetLayout() {
-    try {
-      const saved = localStorage.getItem(WIDGET_LAYOUT_KEY);
-      const layout = saved === 'card' || saved === 'vertical' ? 'card' : 'compact';
-      if (saved && saved !== layout) {
-        try { localStorage.setItem(WIDGET_LAYOUT_KEY, layout); } catch {}
-      }
-      return layout;
-    } catch {
-      return 'compact';
-    }
-  }
-
-  /**
-   * Apply the widget control layout globally.
-   * @param {'compact'|'card'} layout
-   * @param {boolean} persist
-   * @private
-   */
-  _applyWidgetLayout(layout, persist = true) {
-    const nextLayout = layout === 'card' || layout === 'vertical' ? 'card' : 'compact';
-    const layoutLabel = nextLayout === 'card' ? 'Card' : 'Compact';
-    const desktop = document.getElementById('desktop');
-    if (desktop) {
-      desktop.classList.toggle('widget-layout-vertical', nextLayout === 'card');
-      desktop.classList.toggle('widget-layout-horizontal', nextLayout === 'compact');
-    }
-
-    document.querySelectorAll('.widget-layout-option').forEach(btn => {
-      const active = btn.dataset.widgetLayout === nextLayout;
-      btn.classList.toggle('active', active);
-      btn.setAttribute('aria-pressed', String(active));
-    });
-
-    if (persist) {
-      try { localStorage.setItem(WIDGET_LAYOUT_KEY, nextLayout); } catch {}
-      toast(`Widget layout: ${layoutLabel}`, 'success');
-    }
-
-    this.audio?._applySize?.();
-    this.weather?._applySize?.();
-    this.pomodoro?._applySize?.();
-  }
-
-  /** @private */
-  _loadWidgetCollapse() {
-    try {
-      const raw = localStorage.getItem(WIDGET_COLLAPSE_KEY);
-      if (!raw) return { ...WIDGET_COLLAPSE_DEFAULTS };
-      const parsed = JSON.parse(raw);
-      if (parsed.audio === undefined && (parsed.music !== undefined || parsed.ambient !== undefined)) {
-        parsed.audio = parsed.music === true && parsed.ambient === true;
-      }
-      return { ...WIDGET_COLLAPSE_DEFAULTS, ...parsed };
-    } catch {
-      return { ...WIDGET_COLLAPSE_DEFAULTS };
-    }
-  }
-
-  /**
-   * Collapse compact widgets down to their core status controls individually.
-   * Card layout ignores these classes via CSS.
-   * @param {object} collapse
-   * @param {boolean} persist
-   * @private
-   */
-  _applyWidgetCollapse(collapse, persist = true) {
-    this.widgetCollapse = { ...WIDGET_COLLAPSE_DEFAULTS, ...collapse };
-
-    const elements = this._widgetElementMap();
-    Object.entries(WIDGET_COLLAPSE_DEFAULTS).forEach(([id]) => {
-      const collapsed = this.widgetCollapse[id] === true;
-      elements[id]?.classList.toggle('widget-collapsed', collapsed);
-    });
-
-    document.querySelectorAll('.widget-collapse-toggle').forEach(btn => {
-      const id = btn.dataset.widgetCollapseId;
-      const active = this.widgetCollapse[id] === true;
-      btn.classList.toggle('active', active);
-      btn.setAttribute('aria-pressed', String(active));
-    });
-
-    if (persist) {
-      try { localStorage.setItem(WIDGET_COLLAPSE_KEY, JSON.stringify(this.widgetCollapse)); } catch {}
-      toast('Widget collapse updated', 'success');
-    }
-  }
 
   /** @private */
   _loadWidgetVisibility() {
@@ -788,27 +644,7 @@ class CanopyApp {
       }
     });
 
-    // ── Widget layout ──
-    document.querySelectorAll('.theme-option').forEach(btn => {
-      btn.addEventListener('click', () => this._applyTheme(btn.dataset.theme));
-    });
-
-    document.querySelectorAll('.widget-layout-option').forEach(btn => {
-      btn.addEventListener('click', () => this._applyWidgetLayout(btn.dataset.widgetLayout));
-    });
-    this._applyWidgetLayout(this._loadWidgetLayout(), false);
-
-    document.querySelectorAll('.widget-collapse-toggle').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.dataset.widgetCollapseId;
-        this._applyWidgetCollapse({
-          ...this.widgetCollapse,
-          [id]: this.widgetCollapse[id] !== true,
-        });
-      });
-    });
-    this._applyWidgetCollapse(this._loadWidgetCollapse(), false);
-
+    // ── Widget visibility ──
     document.querySelectorAll('.widget-visibility-toggle').forEach(btn => {
       btn.addEventListener('click', () => {
         const id = btn.dataset.widgetId;

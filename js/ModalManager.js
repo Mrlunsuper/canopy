@@ -253,6 +253,9 @@ export class ModalManager {
    * @param {object} item
    */
   openFolderOverlay(item) {
+    item = this.storage.findItem(item.id);
+    if (!item) return;
+
     this.openFolderId = item.id;
     const iconName = item.emoji || 'folder';
 

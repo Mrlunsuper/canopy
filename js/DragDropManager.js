@@ -101,6 +101,7 @@ export class DragDropManager {
             y: Math.max(0, Math.min(snapped.y, maxY)),
           };
           this.storage.data.items.push(moved);
+          this.storage.removeEmptyFolderForList(parentList);
           this.storage.saveData();
           this.renderCallback();
           document.dispatchEvent(new CustomEvent('canopy-item-moved-desktop', { detail: { id: moved.id } }));

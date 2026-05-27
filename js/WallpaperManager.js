@@ -1,6 +1,6 @@
 /* ============================================================
    CANOPY — js/WallpaperManager.js
-   Wallpaper theme management
+   Wallpaper management
    ============================================================ */
 
 export class WallpaperManager {

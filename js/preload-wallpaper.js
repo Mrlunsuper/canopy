@@ -1,9 +1,4 @@
 (function(){
-  var theme = localStorage.getItem('canopy_theme');
-  if (theme === 'glass') document.body.classList.add('theme-glass');
-  else if (theme === 'paper') document.body.classList.add('theme-paper');
-  else document.body.classList.add('theme-neumorphic');
-
   var wp = localStorage.getItem('desktop_tab_wallpaper');
   if (!wp || wp === 'default') return;
   var el = document.getElementById('desktop');

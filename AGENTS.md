@@ -15,8 +15,7 @@ Chrome extension (Manifest V3) that replaces the new tab page with a desktop-sty
 manifest.json          ← MV3 manifest (newtab override, permissions, CSP)
 background.js          ← Service worker: context menu + proxy for Wallhaven/music APIs
 newtab.html            ← SPA: all HTML, loads CSS + JS modules
-styles.css             ← All styles (glassmorphism, CSS vars)
-widget-themes.css      ← Widget theme styles
+styles.css             ← All styles (CSS vars, widgets, modals)
 lucide.min.js          ← Bundled Lucide icon library (no CDN)
 js/
   app.js               ← Main orchestrator (CanopyApp class), wires all modules
@@ -31,17 +30,16 @@ js/
   WallhavenManager.js  ← Wallhaven.cc search, preview, download
   ClockWidget.js       ← Live clock/date
   CommandPalette.js    ← /gg, /yt, /cal, /wall slash commands
-  MusicPlayer.js       ← Internet radio player (genres, streaming)
+  AudioPlayer.js       ← Music player + ambient sound mixer
   PomodoroTimer.js     ← Focus/break timer
   StickyNotesManager.js← Draggable sticky notes
   WeatherWidget.js     ← Open-Meteo weather (no API key)
   preload-wallpaper.js ← Runs BEFORE app.js to apply wallpaper immediately (prevents FOUC)
-  SearchBar.js         ← ⚠️ NOT wired — imported nowhere, no #search-input in HTML
 ```
 
 ## Key conventions
 - **Storage keys** are defined in `js/utils.js` (`STORAGE_KEY`, `WALLPAPER_KEY`, `MUSIC_CONFIG_KEY`, etc.).
-- **MusicPlayer** uses `localStorage` instead of `chrome.storage.local` — unlike all other modules.
+- **AudioPlayer** stores unified audio config under `AUDIO_CONFIG_KEY` and can migrate old music/ambient config keys.
 - **background.js** cannot import ES modules, so constants like `GRID_COL`/`GRID_ROW` are duplicated there.
 - **preload-wallpaper.js** is a classic `<script>` (not module) and must stay that way — it runs synchronously before module loading.
 - All JS modules in `js/` are ES modules (`type="module"` in HTML).
@@ -55,6 +53,5 @@ js/
 The service worker proxies these to bypass extension-page CORS restrictions. New API origins must be added to both `manifest.json` `host_permissions` and `content_security_policy` `connect-src`, and proxied via `background.js` message handlers.
 
 ## Gotchas
-- `SearchBar.js` exists but is dead code — do not try to use it without also adding the HTML element and wiring it in `app.js`.
 - No unit test infrastructure exists. Manual testing via Chrome reload is the only verification.
 - The `carnopy_more_feature.md` file is an AI brainstorming session log, not a spec or requirements doc.
