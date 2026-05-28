@@ -67,6 +67,7 @@
   --widget-shadow: 0 10px 30px rgba(0, 0, 0, 0.26);
   --widget-blur: blur(18px);
   --widget-control-bg: var(--control-bg);
+  --widget-width: 360px;
 
   --danger: #f04e65;
   --danger-hover: #ff6b7e;
@@ -1274,8 +1275,61 @@ textarea {
   box-shadow: 0 0 4px var(--accent-glow);
 }
 
+#audio-player.mode-music #audio-pill {
+  display: grid;
+  grid-template-columns: auto minmax(120px, 1fr) auto auto;
+  align-items: center;
+  width: min(var(--widget-width), calc(100vw - 40px));
+  padding: 10px;
+  border-radius: var(--radius-lg);
+  white-space: normal;
+}
+
+#audio-player.mode-music #audio-mode-switch,
+#audio-player.mode-music #music-progress,
+#audio-player.mode-music #music-card-list {
+  grid-column: 1 / -1;
+}
+
+#audio-player.mode-music #audio-mode-switch {
+  justify-self: start;
+}
+
+#audio-player.mode-music #music-progress {
+  position: static;
+  width: 100%;
+}
+
+#audio-player.mode-music #audio-panel-music > .widget-header {
+  min-width: 0;
+}
+
 #music-card-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px;
+  width: 100%;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 2px;
+  overscroll-behavior: contain;
+}
+
+#music-card-list:empty {
   display: none;
+}
+
+#music-card-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+#music-card-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#music-card-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
 }
 
 .music-card-track {
@@ -1321,7 +1375,7 @@ textarea {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  width: 340px;
+  width: min(var(--widget-width), calc(100vw - 40px));
   padding: 12px;
   border-radius: var(--radius-lg);
   white-space: normal;
@@ -4239,6 +4293,8 @@ input[type="file"] {
 #audio-pill,
 #pomodoro-pill,
 #weather-pill {
+  box-sizing: border-box;
+  width: min(var(--widget-width), calc(100vw - 40px));
   min-height: 44px;
   height: auto;
   padding: 6px 10px;
@@ -4279,6 +4335,16 @@ input[type="file"] {
   align-items: center;
   gap: 7px;
   min-width: 0;
+}
+
+#pomodoro-pill .widget-header,
+#weather-pill .widget-body {
+  flex: 1 1 auto;
+}
+
+#pomodoro-pill .widget-actions,
+#weather-pill .widget-actions {
+  margin-left: auto;
 }
 
 #music-toggle,
@@ -4532,7 +4598,7 @@ input[type="file"] {
 }
 
 #audio-player.ambient-expanded #audio-pill {
-  width: min(340px, calc(100vw - 40px));
+  width: min(var(--widget-width), calc(100vw - 40px));
   padding: 10px;
   border-radius: 20px;
 }

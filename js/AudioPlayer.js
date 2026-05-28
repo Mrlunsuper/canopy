@@ -72,7 +72,6 @@ export class AudioPlayer {
 
   async init() {
     this.musicAudio.preload = 'auto';
-    if (this.musicCardList) this.player.appendChild(this.musicCardList);
     await this._loadConfig();
     this._applyPosition();
     this._applyMusicTrack();
@@ -809,6 +808,7 @@ export class AudioPlayer {
       item.type = 'button';
       item.className = 'music-card-track';
       item.classList.toggle('active', i === this.config.music.currentIndex);
+      if (i === this.config.music.currentIndex) item.setAttribute('aria-current', 'true');
       item.title = track.name;
 
       const index = document.createElement('span');
@@ -822,20 +822,23 @@ export class AudioPlayer {
       item.appendChild(index);
       item.appendChild(name);
       item.addEventListener('click', () => {
-        if (this.config.music.currentIndex === i) return;
-        const wasPlaying = !this.musicAudio.paused;
-        this.musicAudio.pause();
-        this.config.music.currentIndex = i;
-        this._musicListOpen = false;
-        if (this.config.music.shuffle) {
-          const orderIdx = this.config.music.shuffleOrder.indexOf(i);
-          if (orderIdx !== -1) this.config.music.shufflePos = orderIdx;
+        const isCurrent = this.config.music.currentIndex === i;
+        if (!isCurrent) {
+          this.musicAudio.pause();
+          this.config.music.currentIndex = i;
+          if (this.config.music.shuffle) {
+            const orderIdx = this.config.music.shuffleOrder.indexOf(i);
+            if (orderIdx !== -1) this.config.music.shufflePos = orderIdx;
+          }
+          this._applyMusicTrack();
+          this._saveConfig();
+          this._renderMusicSettingsList();
         }
-        this._applyMusicTrack();
-        this._saveConfig();
         this._render();
-        this._renderMusicSettingsList();
-        if (wasPlaying) this.musicAudio.play().catch(() => {});
+        this.musicAudio.play().catch(e => {
+          console.error('Play failed:', e);
+          toast('Click play again to start audio', 'info');
+        });
       });
 
       this.musicCardList.appendChild(item);
