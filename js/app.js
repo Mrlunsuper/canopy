@@ -3,7 +3,21 @@
    Application orchestrator — wires all modules together
    ============================================================ */
 
-import { snapToGrid, toast, uid, normalizeShortcutUrl, normalizeImageUrl } from './utils.js';
+import {
+  snapToGrid,
+  toast,
+  uid,
+  normalizeShortcutUrl,
+  normalizeImageUrl,
+  STORAGE_KEY,
+  WALLPAPER_KEY,
+  AUDIO_CONFIG_KEY,
+  MUSIC_CONFIG_KEY,
+  AMBIENT_CONFIG_KEY,
+  STICKY_NOTES_KEY,
+  DELETED_NOTES_KEY,
+  FAVICON_CACHE_KEY,
+} from './utils.js';
 import { StorageManager }     from './StorageManager.js';
 import { FaviconCache }       from './FaviconCache.js';
 import { WallpaperManager }   from './WallpaperManager.js';
@@ -19,8 +33,42 @@ import { AudioPlayer }        from './AudioPlayer.js';
 import { PomodoroTimer }      from './PomodoroTimer.js';
 import { StickyNotesManager } from './StickyNotesManager.js';
 import { WeatherWidget }      from './WeatherWidget.js';
+import { TodayPanel }         from './TodayPanel.js';
 
 const WIDGET_VISIBILITY_KEY = 'canopy_widget_visibility';
+const WIDGET_LAYOUT_KEY = 'canopy_widget_layout';
+const WIDGET_LAYOUT_DEFAULT = 'today';
+const DESKTOP_ICONS_VISIBLE_KEY = 'canopy_desktop_icons_visible';
+const BACKUP_VERSION = 2;
+const BACKUP_CHROME_KEYS = [
+  STORAGE_KEY,
+  WALLPAPER_KEY,
+  AUDIO_CONFIG_KEY,
+  MUSIC_CONFIG_KEY,
+  AMBIENT_CONFIG_KEY,
+  STICKY_NOTES_KEY,
+  DELETED_NOTES_KEY,
+  FAVICON_CACHE_KEY,
+];
+const BACKUP_LOCAL_KEYS = [
+  STORAGE_KEY,
+  WALLPAPER_KEY,
+  AUDIO_CONFIG_KEY,
+  MUSIC_CONFIG_KEY,
+  AMBIENT_CONFIG_KEY,
+  STICKY_NOTES_KEY,
+  DELETED_NOTES_KEY,
+  FAVICON_CACHE_KEY,
+  'pomodoro_config',
+  'canopy_clock_position',
+  'canopy_clock_size',
+  'canopy_weather_config',
+  'canopy_weather_cache',
+  'canopy_today_panel_position',
+  WIDGET_VISIBILITY_KEY,
+  WIDGET_LAYOUT_KEY,
+  DESKTOP_ICONS_VISIBLE_KEY,
+];
 const WIDGET_VISIBILITY_DEFAULTS = {
   clock: true,
   audio: true,
@@ -83,7 +131,17 @@ class CanopyApp {
     // ── Sticky Notes ──
     this.stickyNotes = new StickyNotesManager();
 
+    // ── Today / Focus Panel ──
+    this.todayPanel = new TodayPanel({
+      clock: this.clock,
+      weather: this.weather,
+      pomodoro: this.pomodoro,
+      audio: this.audio,
+    });
+
+    this.widgetLayout = WIDGET_LAYOUT_DEFAULT;
     this.widgetVisibility = { ...WIDGET_VISIBILITY_DEFAULTS };
+    this.desktopIconsVisible = true;
   }
 
   // ═══════════════════════════════════════════════
@@ -94,6 +152,8 @@ class CanopyApp {
     // Load data
     await this.storage.loadData();
 
+    this._applyDesktopIconsVisibility(this._loadDesktopIconsVisibility(), false);
+
     // Load favicon cache
     await this.faviconCache.init();
 
@@ -103,6 +163,8 @@ class CanopyApp {
 
     // Render desktop
     this.renderer.render();
+
+    this.widgetLayout = this._loadWidgetLayout();
 
     // Apply saved widget visibility before widgets paint
     this._applyWidgetVisibility(this._loadWidgetVisibility(), false);
@@ -121,6 +183,10 @@ class CanopyApp {
 
     // Init sticky notes
     await this.stickyNotes.init();
+
+    // Init Today / Focus Panel after source widgets have painted
+    this.todayPanel.init(this.widgetVisibility);
+    this._applyWidgetLayout(this.widgetLayout, false);
 
     // Initialize drop zone
     this.dragDrop.initDropZone();
@@ -181,6 +247,52 @@ class CanopyApp {
 
 
   /** @private */
+  _loadDesktopIconsVisibility() {
+    try {
+      return localStorage.getItem(DESKTOP_ICONS_VISIBLE_KEY) !== 'false';
+    } catch {
+      return true;
+    }
+  }
+
+  /** @private */
+  _saveDesktopIconsVisibility() {
+    try {
+      localStorage.setItem(DESKTOP_ICONS_VISIBLE_KEY, String(this.desktopIconsVisible));
+    } catch {}
+  }
+
+  /** @private */
+  _applyDesktopIconsVisibility(visible, persist = true) {
+    this.desktopIconsVisible = visible !== false;
+
+    const desktop = document.getElementById('desktop');
+    desktop?.classList.toggle('desktop-icons-hidden', !this.desktopIconsVisible);
+
+    const btn = document.getElementById('desktop-icons-toggle');
+    if (btn) {
+      btn.classList.toggle('active', this.desktopIconsVisible);
+      btn.setAttribute('aria-pressed', String(this.desktopIconsVisible));
+      btn.title = this.desktopIconsVisible ? 'Desktop icons are visible' : 'Desktop icons are hidden';
+
+      const label = 'Desktop icons';
+      const iconName = this.desktopIconsVisible ? 'eye' : 'eye-off';
+      btn.innerHTML = `<i data-lucide="${iconName}"></i> ${label}`;
+      if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [btn] });
+    }
+
+    if (!this.desktopIconsVisible) {
+      this.renderer?.clearSelection();
+      this.contextMenu?.hide();
+    }
+
+    if (persist) {
+      this._saveDesktopIconsVisibility();
+      toast(this.desktopIconsVisible ? 'Desktop icons shown' : 'Desktop icons hidden', 'success');
+    }
+  }
+
+  /** @private */
   _loadWidgetVisibility() {
     try {
       const raw = localStorage.getItem(WIDGET_VISIBILITY_KEY);
@@ -203,6 +315,23 @@ class CanopyApp {
   }
 
   /** @private */
+  _loadWidgetLayout() {
+    try {
+      const saved = localStorage.getItem(WIDGET_LAYOUT_KEY);
+      return saved === 'separate' ? 'separate' : WIDGET_LAYOUT_DEFAULT;
+    } catch {
+      return WIDGET_LAYOUT_DEFAULT;
+    }
+  }
+
+  /** @private */
+  _saveWidgetLayout() {
+    try {
+      localStorage.setItem(WIDGET_LAYOUT_KEY, this.widgetLayout);
+    } catch {}
+  }
+
+  /** @private */
   _widgetElementMap() {
     return {
       clock: document.getElementById('center-widget'),
@@ -214,22 +343,15 @@ class CanopyApp {
   }
 
   /** @private */
+  _standaloneWidgetIds() {
+    return ['clock', 'audio', 'weather', 'pomodoro'];
+  }
+
+  /** @private */
   _applyWidgetVisibility(visibility, persist = true) {
     this.widgetVisibility = { ...WIDGET_VISIBILITY_DEFAULTS, ...visibility };
-    const elements = this._widgetElementMap();
-
-    Object.entries(elements).forEach(([id, el]) => {
-      if (!el) return;
-      const visible = this.widgetVisibility[id] !== false;
-      el.classList.toggle('canopy-widget-disabled', !visible);
-    });
-
-    document.querySelectorAll('.widget-visibility-toggle').forEach(btn => {
-      const visible = this.widgetVisibility[btn.dataset.widgetId] !== false;
-      btn.classList.toggle('active', visible);
-      btn.setAttribute('aria-pressed', String(visible));
-      btn.title = visible ? 'Visible' : 'Hidden';
-    });
+    this.todayPanel?.setVisibility(this.widgetVisibility);
+    this._applyWidgetLayout(this.widgetLayout, false);
 
     if (persist) {
       this._saveWidgetVisibility();
@@ -238,8 +360,56 @@ class CanopyApp {
   }
 
   /** @private */
-  _exportData() {
-    const json = JSON.stringify(this.storage.data, null, 2);
+  _applyWidgetLayout(layout = WIDGET_LAYOUT_DEFAULT, persist = true) {
+    this.widgetLayout = layout === 'separate' ? 'separate' : WIDGET_LAYOUT_DEFAULT;
+    const elements = this._widgetElementMap();
+    const useTodayPanel = this.widgetLayout === 'today';
+
+    Object.entries(elements).forEach(([id, el]) => {
+      if (!el) return;
+      const visible = this.widgetVisibility[id] !== false;
+      const disabled = id === 'notes'
+        ? !visible
+        : useTodayPanel || !visible;
+      el.classList.toggle('canopy-widget-disabled', disabled);
+    });
+
+    const todayPanel = document.getElementById('today-panel');
+    const panelHasVisibleModule = this._standaloneWidgetIds().some(id => this.widgetVisibility[id] !== false);
+    todayPanel?.classList.toggle('hidden', !useTodayPanel || !panelHasVisibleModule);
+    this.todayPanel?.setVisibility(this.widgetVisibility);
+
+    document.querySelectorAll('.widget-visibility-toggle').forEach(btn => {
+      const visible = this.widgetVisibility[btn.dataset.widgetId] !== false;
+      btn.classList.toggle('active', visible);
+      btn.setAttribute('aria-pressed', String(visible));
+      btn.title = visible ? 'Visible' : 'Hidden';
+    });
+
+    document.querySelectorAll('.widget-layout-option').forEach(btn => {
+      const active = btn.dataset.widgetLayout === this.widgetLayout;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', String(active));
+    });
+
+    if (persist) {
+      this._saveWidgetLayout();
+      toast(this.widgetLayout === 'today' ? 'Compact layout enabled' : 'Separate layout enabled', 'success');
+    }
+  }
+
+  /** @private */
+  async _exportData() {
+    const backup = {
+      app: 'canopy',
+      version: BACKUP_VERSION,
+      exportedAt: new Date().toISOString(),
+      chromeStorage: await this._readChromeStorage(BACKUP_CHROME_KEYS),
+      localStorage: this._readLocalStorage(BACKUP_LOCAL_KEYS),
+    };
+    backup.chromeStorage[STORAGE_KEY] = this.storage.data;
+
+    const json = JSON.stringify(backup, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
@@ -254,32 +424,120 @@ class CanopyApp {
   _importDataFromFile(file) {
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = e => {
+    reader.onload = async e => {
       try {
-        const imported = this._sanitizeImportedData(JSON.parse(e.target.result));
+        const parsed = JSON.parse(e.target.result);
+        const imported = this._sanitizeImportedData(parsed);
         if (!imported) {
           toast('Invalid backup file', 'error');
           return;
         }
 
-        this.storage.data = imported;
+        await this._restoreImportedData(parsed, imported);
         this.storage.saveData();
         this.renderer.render();
         toast('Data imported ✓', 'success');
+        setTimeout(() => window.location.reload(), 300);
       } catch {
         toast('Invalid JSON file', 'error');
+      } finally {
+        const input = document.getElementById('import-data-file');
+        if (input) input.value = '';
       }
     };
     reader.readAsText(file);
   }
 
   /** @private */
+  _readChromeStorage(keys) {
+    return new Promise(resolve => {
+      if (typeof chrome === 'undefined' || !chrome.storage) {
+        resolve({});
+        return;
+      }
+      chrome.storage.local.get(keys, result => resolve(result || {}));
+    });
+  }
+
+  /** @private */
+  _writeChromeStorage(values) {
+    return new Promise(resolve => {
+      if (typeof chrome === 'undefined' || !chrome.storage || !values || Object.keys(values).length === 0) {
+        resolve();
+        return;
+      }
+      chrome.storage.local.set(values, () => resolve());
+    });
+  }
+
+  /** @private */
+  _removeChromeStorage(keys) {
+    return new Promise(resolve => {
+      if (typeof chrome === 'undefined' || !chrome.storage || !keys.length) {
+        resolve();
+        return;
+      }
+      chrome.storage.local.remove(keys, () => resolve());
+    });
+  }
+
+  /** @private */
+  _readLocalStorage(keys) {
+    const values = {};
+    keys.forEach(key => {
+      try {
+        const value = localStorage.getItem(key);
+        if (value !== null) values[key] = value;
+      } catch { /* ignore */ }
+    });
+    return values;
+  }
+
+  /** @private */
+  async _restoreImportedData(raw, desktopData) {
+    if (this._isFullBackup(raw)) {
+      const chromeValues = {};
+      Object.entries(raw.chromeStorage || {}).forEach(([key, value]) => {
+        if (BACKUP_CHROME_KEYS.includes(key)) chromeValues[key] = value;
+      });
+      chromeValues[STORAGE_KEY] = desktopData;
+      const chromeRemoveKeys = BACKUP_CHROME_KEYS.filter(key => !(key in chromeValues));
+      await this._removeChromeStorage(chromeRemoveKeys);
+      await this._writeChromeStorage(chromeValues);
+
+      BACKUP_LOCAL_KEYS.forEach(key => {
+        if (!(key in (raw.localStorage || {}))) {
+          try { localStorage.removeItem(key); } catch { /* ignore */ }
+        }
+      });
+      Object.entries(raw.localStorage || {}).forEach(([key, value]) => {
+        if (!BACKUP_LOCAL_KEYS.includes(key) || typeof value !== 'string') return;
+        try { localStorage.setItem(key, value); } catch { /* ignore */ }
+      });
+    }
+
+    this.storage.data = desktopData;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(desktopData)); } catch { /* ignore */ }
+  }
+
+  /** @private */
+  _isFullBackup(raw) {
+    return raw
+      && typeof raw === 'object'
+      && raw.app === 'canopy'
+      && raw.version >= 2
+      && raw.chromeStorage
+      && typeof raw.chromeStorage === 'object';
+  }
+
+  /** @private */
   _sanitizeImportedData(raw) {
-    if (!raw || typeof raw !== 'object' || !Array.isArray(raw.items)) return null;
+    const source = this._isFullBackup(raw) ? raw.chromeStorage?.[STORAGE_KEY] : raw;
+    if (!source || typeof source !== 'object' || !Array.isArray(source.items)) return null;
 
     const seenIds = new Set();
     const items = [];
-    raw.items.forEach(item => {
+    source.items.forEach(item => {
       const sanitized = this._sanitizeImportedItem(item, true, seenIds, 0);
       if (sanitized) items.push(sanitized);
     });
@@ -645,6 +903,12 @@ class CanopyApp {
     });
 
     // ── Widget visibility ──
+    document.querySelectorAll('.widget-layout-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this._applyWidgetLayout(btn.dataset.widgetLayout);
+      });
+    });
+
     document.querySelectorAll('.widget-visibility-toggle').forEach(btn => {
       btn.addEventListener('click', () => {
         const id = btn.dataset.widgetId;
@@ -655,6 +919,11 @@ class CanopyApp {
       });
     });
     this._applyWidgetVisibility(this._loadWidgetVisibility(), false);
+
+    document.getElementById('desktop-icons-toggle')?.addEventListener('click', () => {
+      this._applyDesktopIconsVisibility(!this.desktopIconsVisible);
+    });
+    this._applyDesktopIconsVisibility(this._loadDesktopIconsVisibility(), false);
 
     // ── Settings data ──
     document.getElementById('btn-export-data').addEventListener('click', () => this._exportData());

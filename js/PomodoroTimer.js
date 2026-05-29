@@ -60,6 +60,22 @@ export class PomodoroTimer {
     this._render();
   }
 
+  getSnapshot() {
+    const labels = {
+      work: 'Focus',
+      shortBreak: 'Break',
+      longBreak: 'Long Break'
+    };
+    return {
+      phase: this.config.phase,
+      label: labels[this.config.phase] || 'Focus',
+      time: this._formatTime(this._remaining),
+      sessions: this.config.completedSessions,
+      running: this._running,
+      progress: this._total > 0 ? (this._total - this._remaining) / this._total : 0,
+    };
+  }
+
   // ═══════════════════════════════════════════════
   //  TIMER LOGIC
   // ═══════════════════════════════════════════════
@@ -297,6 +313,13 @@ export class PomodoroTimer {
 
     // Progress ring
     this._updateProgressRing();
+    this._emitUpdate();
+  }
+
+  _emitUpdate() {
+    window.dispatchEvent(new CustomEvent('canopy:pomodoro-update', {
+      detail: this.getSnapshot(),
+    }));
   }
 
   _updateProgressRing() {

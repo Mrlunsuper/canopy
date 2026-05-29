@@ -27,6 +27,79 @@
       <button id="btn-settings" class="fab" title="Settings"><i data-lucide="settings"></i></button>
     </div>
 
+    <!-- Today / Focus Panel -->
+    <div id="today-panel" class="hidden">
+      <div class="today-panel-grip" title="Drag panel">
+        <span>Today</span>
+        <i data-lucide="grip-horizontal"></i>
+      </div>
+      <div class="today-panel-content">
+        <section class="today-module today-clock" data-today-section="clock">
+          <div>
+            <div id="today-clock-time">00:00</div>
+            <div id="today-clock-date">Monday, 01/01</div>
+          </div>
+        </section>
+        <section class="today-module today-weather" data-today-section="weather">
+          <div class="today-module-main">
+            <span id="today-weather-icon">🌡️</span>
+            <div>
+              <div class="today-module-line">
+                <span id="today-weather-temp">--°</span>
+                <span id="today-weather-location"></span>
+              </div>
+              <div class="today-module-sub">
+                <span id="today-weather-desc">Loading...</span>
+                <span id="today-weather-updated"></span>
+              </div>
+            </div>
+          </div>
+          <div class="today-module-actions">
+            <button id="today-weather-unit" title="Toggle °C / °F"><i data-lucide="thermometer"></i></button>
+            <button id="today-weather-refresh" title="Refresh weather"><i data-lucide="refresh-cw"></i></button>
+          </div>
+        </section>
+        <section class="today-module today-pomodoro" data-today-section="pomodoro">
+          <div class="today-module-main">
+            <div id="today-pomodoro-progress"><i data-lucide="brain"></i></div>
+            <div>
+              <div class="today-module-line">
+                <span id="today-pomodoro-mode">Focus</span>
+                <span id="today-pomodoro-sessions">#0</span>
+              </div>
+              <div id="today-pomodoro-time">25:00</div>
+            </div>
+          </div>
+          <div class="today-module-actions">
+            <button id="today-pomodoro-toggle" title="Start"><i data-lucide="play"></i></button>
+            <button id="today-pomodoro-skip" title="Skip phase"><i data-lucide="skip-forward"></i></button>
+            <button id="today-pomodoro-reset" title="Reset timer"><i data-lucide="rotate-ccw"></i></button>
+          </div>
+        </section>
+        <section class="today-module today-audio" data-today-section="audio">
+          <div class="today-module-main">
+            <span id="today-audio-icon"><i data-lucide="music"></i></span>
+            <div>
+              <div class="today-module-line">
+                <span id="today-audio-mode">Music</span>
+                <span id="today-audio-meta">--:-- / --:--</span>
+              </div>
+              <div id="today-audio-title">Music</div>
+            </div>
+          </div>
+          <div class="today-module-actions">
+            <input type="range" id="today-audio-progress" min="0" max="100" value="0" title="Track progress" />
+            <input type="range" id="today-audio-volume" min="0" max="100" value="75" title="Volume" />
+            <button id="today-audio-mode-toggle" title="Switch audio mode"><i data-lucide="waves"></i></button>
+            <button id="today-audio-prev" title="Previous track"><i data-lucide="chevron-left"></i></button>
+            <button id="today-audio-toggle" title="Play"><i data-lucide="play"></i></button>
+            <button id="today-audio-next" title="Next track"><i data-lucide="chevron-right"></i></button>
+          </div>
+          <div id="today-audio-list" class="today-audio-list"></div>
+        </section>
+      </div>
+    </div>
+
     <!-- Audio Player -->
     <div id="audio-player" class="hidden mode-music">
       <audio id="music-audio" preload="auto"></audio>
@@ -245,6 +318,12 @@
       <div id="settings-content">
         <div id="settings-appearance" class="settings-content-panel active">
           <section class="settings-section">
+            <h3><i data-lucide="monitor"></i> Desktop</h3>
+            <button id="desktop-icons-toggle" class="settings-btn desktop-visibility-toggle active" type="button" aria-pressed="true">
+              <i data-lucide="eye"></i> Show desktop icons
+            </button>
+          </section>
+          <section class="settings-section">
             <h3><i data-lucide="image"></i> Wallpaper</h3>
             <div id="wallpaper-presets">
               <div class="wp-preset active" data-wp="default" title="Nebula"></div>
@@ -291,7 +370,15 @@
           <section class="settings-section">
             <h3><i data-lucide="layout-dashboard"></i> Widgets</h3>
             <div id="widget-visibility-settings">
-              <span class="settings-info">Show or hide floating widgets.</span>
+              <span class="settings-info">Choose a widget layout and show or hide modules.</span>
+              <div id="widget-layout-toggle" class="settings-segmented" role="group" aria-label="Widget layout">
+                <button class="widget-layout-option active" data-widget-layout="today" type="button" aria-pressed="true">
+                  Compact
+                </button>
+                <button class="widget-layout-option" data-widget-layout="separate" type="button" aria-pressed="false">
+                  Separate
+                </button>
+              </div>
               <div class="widget-visibility-grid" role="group" aria-label="Widget visibility">
                 <button class="settings-btn compact widget-visibility-toggle" data-widget-id="clock" type="button">
                   <i data-lucide="clock"></i> Clock

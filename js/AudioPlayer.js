@@ -102,6 +102,17 @@ export class AudioPlayer {
     this.toggleMusic();
   }
 
+  setMode(mode) {
+    this.config.activeMode = mode === 'ambient' ? 'ambient' : 'music';
+    this._musicListOpen = false;
+    this._saveConfig();
+    this._render();
+  }
+
+  toggleMode() {
+    this.setMode(this.config.activeMode === 'ambient' ? 'music' : 'ambient');
+  }
+
   prevTrack() {
     const music = this.config.music;
     if (music.tracks.length === 0) return;
@@ -142,6 +153,70 @@ export class AudioPlayer {
     this._saveConfig();
     this._renderMusic();
     if (wasPlaying) this.musicAudio.play().catch(() => {});
+  }
+
+  selectTrack(index, play = true) {
+    const music = this.config.music;
+    if (!Number.isInteger(index) || index < 0 || index >= music.tracks.length) return;
+    const isCurrent = music.currentIndex === index;
+
+    if (!isCurrent) {
+      this.musicAudio.pause();
+      music.currentIndex = index;
+      if (music.shuffle) {
+        const orderIdx = music.shuffleOrder.indexOf(index);
+        if (orderIdx !== -1) music.shufflePos = orderIdx;
+      }
+      this._applyMusicTrack();
+      this._saveConfig();
+      this._renderMusicSettingsList();
+    }
+
+    this._render();
+    if (play) {
+      this.musicAudio.play().catch(e => {
+        console.error('Play failed:', e);
+        toast('Click play again to start audio', 'info');
+      });
+    }
+  }
+
+  getSnapshot() {
+    const music = this.config.music;
+    const track = music.tracks[music.currentIndex];
+    const activeAmbient = this.config.ambient.sounds
+      .filter(sound => this.config.ambient.activeIds.includes(sound.id))
+      .map(sound => sound.name);
+
+    return {
+      mode: this.config.activeMode,
+      playing: !this.musicAudio.paused || this.config.ambient.playing,
+      musicPlaying: !this.musicAudio.paused,
+      ambientPlaying: this.config.ambient.playing,
+      trackName: track?.name || 'Music',
+      musicTime: this.musicTime?.textContent || '--:-- / --:--',
+      musicProgress: this.musicAudio.duration && isFinite(this.musicAudio.duration)
+        ? Math.max(0, Math.min(100, (this.musicAudio.currentTime / this.musicAudio.duration) * 100))
+        : 0,
+      musicVolume: music.volume,
+      tracks: music.tracks.map((item, index) => ({
+        index,
+        name: item.name,
+        current: index === music.currentIndex,
+      })),
+      ambientLabel: activeAmbient.length > 0 ? activeAmbient.join(', ') : 'Ambient',
+      ambientCount: activeAmbient.length,
+      ambientMasterVolume: this.config.ambient.masterVolume,
+      ambientSounds: this.config.ambient.sounds.map(sound => ({
+        id: sound.id,
+        name: sound.name,
+        icon: sound.icon,
+        active: this.config.ambient.activeIds.includes(sound.id),
+        volume: this.config.ambient.volumes[sound.id] ?? sound.defaultVolume,
+      })),
+      hasMusic: music.tracks.length > 0,
+      hasAmbient: this.config.ambient.sounds.length > 0,
+    };
   }
 
   stopMusic() {
@@ -603,10 +678,7 @@ export class AudioPlayer {
     this.modeBtns.forEach(btn => {
       btn.addEventListener('click', e => {
         e.stopPropagation();
-        this.config.activeMode = btn.dataset.audioMode === 'ambient' ? 'ambient' : 'music';
-        this._musicListOpen = false;
-        this._saveConfig();
-        this._render();
+        this.setMode(btn.dataset.audioMode);
       });
     });
 
@@ -773,6 +845,13 @@ export class AudioPlayer {
     this._renderMusic();
     this._renderAmbient();
     if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [this.player] });
+    this._emitUpdate();
+  }
+
+  _emitUpdate() {
+    window.dispatchEvent(new CustomEvent('canopy:audio-update', {
+      detail: this.getSnapshot(),
+    }));
   }
 
   _renderMusic() {
@@ -822,23 +901,7 @@ export class AudioPlayer {
       item.appendChild(index);
       item.appendChild(name);
       item.addEventListener('click', () => {
-        const isCurrent = this.config.music.currentIndex === i;
-        if (!isCurrent) {
-          this.musicAudio.pause();
-          this.config.music.currentIndex = i;
-          if (this.config.music.shuffle) {
-            const orderIdx = this.config.music.shuffleOrder.indexOf(i);
-            if (orderIdx !== -1) this.config.music.shufflePos = orderIdx;
-          }
-          this._applyMusicTrack();
-          this._saveConfig();
-          this._renderMusicSettingsList();
-        }
-        this._render();
-        this.musicAudio.play().catch(e => {
-          console.error('Play failed:', e);
-          toast('Click play again to start audio', 'info');
-        });
+        this.selectTrack(i, true);
       });
 
       this.musicCardList.appendChild(item);
@@ -1137,6 +1200,7 @@ export class AudioPlayer {
     const pct = duration && isFinite(duration) ? (current / duration) * 100 : 0;
     this.musicProgressFill.style.width = `${pct}%`;
     this.musicTime.textContent = `${this._formatTime(current)} / ${this._formatTime(duration)}`;
+    this._emitUpdate();
   }
 
   _playAmbientActive() {

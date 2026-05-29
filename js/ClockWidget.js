@@ -175,6 +175,21 @@ export class ClockWidget {
     this.timeEl.textContent = `${pad2(hour)}:${pad2(now.getMinutes())}`;
     this.dateEl.textContent = `${DAYS[now.getDay()]}, ${pad2(now.getDate())}/${MONTHS[now.getMonth()]}`;
     this._applyTimeMood(hour);
+    this._emitUpdate();
+  }
+
+  getSnapshot() {
+    return {
+      time: this.timeEl?.textContent || '',
+      date: this.dateEl?.textContent || '',
+      mood: this._lastMood || 'clock-night',
+    };
+  }
+
+  _emitUpdate() {
+    window.dispatchEvent(new CustomEvent('canopy:clock-update', {
+      detail: this.getSnapshot(),
+    }));
   }
 
   _applyTimeMood(hour) {
