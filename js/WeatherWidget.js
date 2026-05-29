@@ -87,6 +87,39 @@ export class WeatherWidget {
     this._startRefreshTimer(shouldFetch ? REFRESH_INTERVAL : CACHE_TTL - cacheAge);
   }
 
+  async refresh() {
+    const updated = await this._fetchWeather();
+    if (updated) this._startRefreshTimer(REFRESH_INTERVAL);
+    return updated;
+  }
+
+  toggleUnit() {
+    this.config.unit = this.config.unit === 'C' ? 'F' : 'C';
+    const unitToggle = document.getElementById('weather-unit-toggle');
+    if (unitToggle) unitToggle.textContent = this.config.unit === 'C' ? '°C' : '°F';
+    this._saveConfig();
+    this._render();
+  }
+
+  getSnapshot() {
+    const d = this.config.lastData;
+    const info = d ? this._getWeatherInfo(d.weatherCode) : { icon: '🌡️', label: 'Loading...' };
+    return {
+      hasData: Boolean(d),
+      icon: info.icon,
+      temperature: d ? this._formatTemp(d.temperature) : '--°',
+      description: info.label,
+      details: d ? {
+        feelsLike: this._formatTemp(d.feelsLike),
+        humidity: `${d.humidity}%`,
+        windSpeed: `${Math.round(d.windSpeed)} km/h`,
+      } : null,
+      location: this.config.cityName || '',
+      updated: d ? this._formatUpdatedTime(d.updatedAt) : '',
+      unit: this.config.unit,
+    };
+  }
+
   // ═══════════════════════════════════════════════
   //  WEATHER DATA
   // ═══════════════════════════════════════════════
@@ -347,6 +380,14 @@ export class WeatherWidget {
     if (typeof lucide !== 'undefined') {
       lucide.createIcons({ nodes: [this.detailsEl, this.refreshBtn] });
     }
+
+    this._emitUpdate();
+  }
+
+  _emitUpdate() {
+    window.dispatchEvent(new CustomEvent('canopy:weather-update', {
+      detail: this.getSnapshot(),
+    }));
   }
 
   // ═══════════════════════════════════════════════
@@ -358,8 +399,7 @@ export class WeatherWidget {
     this.refreshBtn.addEventListener('click', async e => {
       e.stopPropagation();
       this.refreshBtn.classList.add('spinning');
-      const updated = await this._fetchWeather();
-      if (updated) this._startRefreshTimer(REFRESH_INTERVAL);
+      const updated = await this.refresh();
       setTimeout(() => this.refreshBtn.classList.remove('spinning'), 600);
       toast(updated ? 'Weather updated' : 'Weather update failed', updated ? 'success' : 'error');
     });
@@ -413,9 +453,7 @@ export class WeatherWidget {
     // Toggle temperature unit on click
     this.tempEl.addEventListener('click', e => {
       e.stopPropagation();
-      this.config.unit = this.config.unit === 'C' ? 'F' : 'C';
-      this._saveConfig();
-      this._render();
+      this.toggleUnit();
     });
   }
 
@@ -431,10 +469,7 @@ export class WeatherWidget {
     if (unitToggle) {
       unitToggle.textContent = this.config.unit === 'C' ? '°C' : '°F';
       unitToggle.addEventListener('click', () => {
-        this.config.unit = this.config.unit === 'C' ? 'F' : 'C';
-        unitToggle.textContent = this.config.unit === 'C' ? '°C' : '°F';
-        this._saveConfig();
-        this._render();
+        this.toggleUnit();
       });
     }
 
