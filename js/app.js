@@ -11,6 +11,7 @@ import {
   normalizeImageUrl,
   STORAGE_KEY,
   WALLPAPER_KEY,
+  THEME_KEY,
   AUDIO_CONFIG_KEY,
   MUSIC_CONFIG_KEY,
   AMBIENT_CONFIG_KEY,
@@ -43,6 +44,7 @@ const BACKUP_VERSION = 2;
 const BACKUP_CHROME_KEYS = [
   STORAGE_KEY,
   WALLPAPER_KEY,
+  THEME_KEY,
   AUDIO_CONFIG_KEY,
   MUSIC_CONFIG_KEY,
   AMBIENT_CONFIG_KEY,
@@ -53,6 +55,7 @@ const BACKUP_CHROME_KEYS = [
 const BACKUP_LOCAL_KEYS = [
   STORAGE_KEY,
   WALLPAPER_KEY,
+  THEME_KEY,
   AUDIO_CONFIG_KEY,
   MUSIC_CONFIG_KEY,
   AMBIENT_CONFIG_KEY,
@@ -165,6 +168,12 @@ class CanopyApp {
     this.renderer.render();
 
     this.widgetLayout = this._loadWidgetLayout();
+    this._applyTheme(this._loadTheme(), false);
+    if (window.matchMedia) {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+        if (this._loadTheme() === 'system') this._applyTheme('system', false);
+      });
+    }
 
     // Apply saved widget visibility before widgets paint
     this._applyWidgetVisibility(this._loadWidgetVisibility(), false);
@@ -322,6 +331,24 @@ class CanopyApp {
     } catch {
       return WIDGET_LAYOUT_DEFAULT;
     }
+  }
+  /** @private */
+  _loadTheme() {
+    try { return localStorage.getItem(THEME_KEY) || 'system'; } catch { return 'system'; }
+  }
+  /** @private */
+  _applyTheme(theme, persist = true) {
+    if (persist) { try { localStorage.setItem(THEME_KEY, theme); } catch {} }
+    if (theme === 'dark' || (theme === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+    document.querySelectorAll('#theme-switch .theme-option').forEach(btn => {
+      const active = btn.dataset.themeVal === theme;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', String(active));
+    });
   }
 
   /** @private */
@@ -901,6 +928,11 @@ class CanopyApp {
         this.wallhaven.download(this.wallhaven.previewWp);
       }
     });
+    // ── Theme switch ──
+    document.querySelectorAll('#theme-switch .theme-option').forEach(btn => {
+      btn.addEventListener('click', () => this._applyTheme(btn.dataset.themeVal));
+    });
+
 
     // ── Widget visibility ──
     document.querySelectorAll('.widget-layout-option').forEach(btn => {

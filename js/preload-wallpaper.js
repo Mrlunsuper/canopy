@@ -1,4 +1,12 @@
 (function(){
+  try {
+    var theme = localStorage.getItem('canopy_theme');
+    if (theme === 'dark' || (theme !== 'light' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  } catch(e) {}
+})();
+(function(){
   var wp = localStorage.getItem('desktop_tab_wallpaper');
   if (!wp || wp === 'default') return;
   var el = document.getElementById('desktop');
