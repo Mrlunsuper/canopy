@@ -7,6 +7,7 @@ import { DAYS, MONTHS, pad2 } from './utils.js';
 
 const STORAGE_KEY = 'canopy_clock_position';
 const SIZE_KEY = 'canopy_clock_size';
+const FORMAT_KEY = 'canopy_clock_format';
 
 export class ClockWidget {
   constructor() {
@@ -22,10 +23,12 @@ export class ClockWidget {
     this._baseDateSize = 14;
     this._scale = 1;
     this._lastMood = null;
+    this._hour12 = this._loadFormat();
     this._restorePosition();
     this._restoreSize();
     this._initDrag();
     this._initResize();
+    this._wireSettings();
   }
 
   _restoreSize() {
@@ -172,10 +175,59 @@ export class ClockWidget {
   update() {
     const now = new Date();
     const hour = now.getHours();
-    this.timeEl.textContent = `${pad2(hour)}:${pad2(now.getMinutes())}`;
+    this.timeEl.textContent = this._formatTime(hour, now.getMinutes());
     this.dateEl.textContent = `${DAYS[now.getDay()]}, ${pad2(now.getDate())}/${MONTHS[now.getMonth()]}`;
     this._applyTimeMood(hour);
     this._emitUpdate();
+  }
+
+  /** @private */
+  _formatTime(hour, minute) {
+    if (!this._hour12) return `${pad2(hour)}:${pad2(minute)}`;
+    const suffix = hour >= 12 ? 'PM' : 'AM';
+    const h12 = hour % 12 === 0 ? 12 : hour % 12;
+    return `${h12}:${pad2(minute)} ${suffix}`;
+  }
+
+  /** @private */
+  _loadFormat() {
+    try { return localStorage.getItem(FORMAT_KEY) === '12'; } catch { return false; }
+  }
+
+  /** @private */
+  _saveFormat() {
+    try { localStorage.setItem(FORMAT_KEY, this._hour12 ? '12' : '24'); } catch {}
+  }
+
+  /** @private */
+  _wireSettings() {
+    const formatBtn = document.getElementById('clock-format-toggle');
+    if (formatBtn) {
+      const paint = () => { formatBtn.textContent = this._hour12 ? '12h' : '24h'; };
+      paint();
+      formatBtn.addEventListener('click', () => {
+        this._hour12 = !this._hour12;
+        this._saveFormat();
+        paint();
+        this.update();
+      });
+    }
+    const resetBtn = document.getElementById('clock-reset-view');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        try {
+          localStorage.removeItem(STORAGE_KEY);
+          localStorage.removeItem(SIZE_KEY);
+        } catch {}
+        this._scale = 1;
+        this._applySize();
+        this.container.style.left = '';
+        this.container.style.top = '';
+        this.container.style.right = '';
+        this.container.style.bottom = '';
+        this.container.style.transform = '';
+      });
+    }
   }
 
   getSnapshot() {

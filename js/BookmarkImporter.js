@@ -24,7 +24,7 @@ export class BookmarkImporter {
    */
   openImportModal() {
     if (typeof chrome === 'undefined' || !chrome.bookmarks) {
-      toast('chrome.bookmarks API is not available outside extension', 'error');
+      toast('Bookmarks are not available here', 'error');
       return;
     }
 
@@ -142,7 +142,7 @@ export class BookmarkImporter {
   importSelected() {
     const checked = document.querySelectorAll('#bookmark-tree input[type="checkbox"]:checked[data-bm-url]');
     if (checked.length === 0) {
-      toast('No bookmarks selected', 'error');
+      toast('Select at least one bookmark', 'error');
       return;
     }
 
@@ -151,8 +151,8 @@ export class BookmarkImporter {
       const url   = normalizeShortcutUrl(cb.dataset.bmUrl);
       if (!url) return;
       const title = cb.dataset.bmTitle;
-      // skip duplicates
-      if (this.storage.data.items.some(i => i.url === url)) return;
+      // skip duplicates (desktop + folders)
+      if (this.storage.findItemByUrl?.(url)) return;
       const pos = this.renderer.findFreePosition();
       this.storage.data.items.push({
         id:       uid(),
@@ -166,10 +166,11 @@ export class BookmarkImporter {
       added++;
     });
 
-    this.storage.saveData();
+    this.renderer.compactLayout();
+    const saved = this.storage.saveData();
     this.renderer.render();
     this.closeModal('import-modal');
-    toast(`Imported ${added} bookmark(s) ✓`, 'success');
+    saved.then(ok => { if (ok) toast(`Imported ${added} bookmark${added === 1 ? '' : 's'}`, 'success'); });
   }
 
   /**

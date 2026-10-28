@@ -84,8 +84,8 @@ export class DragDropManager {
 
       const gridEl = document.getElementById('desktop-grid');
       const rect = gridEl.getBoundingClientRect();
-      const rawX = e.clientX - rect.left - this._offsetX;
-      const rawY = e.clientY - rect.top  - this._offsetY;
+      const rawX = e.clientX - rect.left + gridEl.scrollLeft - this._offsetX;
+      const rawY = e.clientY - rect.top + gridEl.scrollTop - this._offsetY;
       const snapped = snapToGrid(rawX, rawY);
 
       const parentList = this.storage.findParentList(this._dragId);
@@ -94,15 +94,15 @@ export class DragDropManager {
         // Item is inside a folder — move to desktop
         const moved = this.storage.removeItem(this._dragId);
         if (moved) {
-          const maxX = gridEl.offsetWidth  - GRID_COL;
-          const maxY = gridEl.offsetHeight - GRID_ROW;
+          const maxX = Math.max(gridEl.clientWidth, gridEl.scrollWidth) - GRID_COL;
+          const maxY = Math.max(gridEl.clientHeight, gridEl.scrollHeight) - GRID_ROW;
           moved.position = {
             x: Math.max(0, Math.min(snapped.x, maxX)),
             y: Math.max(0, Math.min(snapped.y, maxY)),
           };
           this.storage.data.items.push(moved);
           this.storage.removeEmptyFolderForList(parentList);
-          this.storage.saveData();
+          const saved = this.storage.saveData();
           this.renderCallback();
           document.dispatchEvent(new CustomEvent('canopy-item-moved-desktop', { detail: { id: moved.id } }));
         }
@@ -128,9 +128,9 @@ export class DragDropManager {
       if (this._dragId) {
         const removed = this.storage.removeItem(this._dragId);
         if (removed) {
-          this.storage.saveData();
+          const saved = this.storage.saveData();
           this.renderCallback();
-          toast(`Deleted "${removed.title}"`, 'info');
+          saved.then(ok => { if (ok) toast(`Deleted "${removed.title}"`, 'info'); });
         }
         this._dragId = null;
       }
@@ -148,8 +148,8 @@ export class DragDropManager {
     if (!item) return;
 
     const grid = document.getElementById('desktop-grid');
-    const maxX = grid.offsetWidth  - GRID_COL;
-    const maxY = grid.offsetHeight - GRID_ROW;
+    const maxX = Math.max(grid.clientWidth, grid.scrollWidth) - GRID_COL;
+    const maxY = Math.max(grid.clientHeight, grid.scrollHeight) - GRID_ROW;
     item.position.x = Math.max(0, Math.min(x, maxX));
     item.position.y = Math.max(0, Math.min(y, maxY));
 
@@ -159,7 +159,7 @@ export class DragDropManager {
     this._positionSaveTimer = setTimeout(() => {
       this._positionSaveTimer = null;
       this._pendingPositionSave = null;
-      this.storage.saveData();
+      const saved = this.storage.saveData();
       this.renderCallback();
     }, 100);
   }
@@ -185,9 +185,9 @@ export class DragDropManager {
     folder.children = folder.children || [];
     folder.children.push(item);
 
-    this.storage.saveData();
+    const saved = this.storage.saveData();
     this.renderCallback();
-    toast(`Added to "${folder.title}" ✓`, 'success');
+    saved.then(ok => { if (ok) toast(`Added to "${folder.title}"`, 'success'); });
   }
 
   /**
@@ -232,8 +232,8 @@ export class DragDropManager {
     delete dragItem.position;
 
     data.items.push(newFolder);
-    this.storage.saveData();
+    const saved = this.storage.saveData();
     this.renderCallback();
-    toast('Created new folder ✓', 'success');
+    saved.then(ok => { if (ok) toast('Folder created', 'success'); });
   }
 }

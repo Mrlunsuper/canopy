@@ -33,6 +33,8 @@ export class AudioPlayer {
     this.musicToggle = document.getElementById('music-toggle');
     this.musicPrev = document.getElementById('music-prev');
     this.musicNext = document.getElementById('music-next');
+    this.musicMore = document.getElementById('music-more');
+    this.musicListToggle = document.getElementById('music-list-toggle');
     this.musicLabel = document.getElementById('music-track-label');
     this.musicTime = document.getElementById('music-time');
     this.musicVolume = document.getElementById('music-volume');
@@ -68,6 +70,12 @@ export class AudioPlayer {
     this._dragState = null;
     this._saveTimer = null;
     this._musicListOpen = false;
+    this._showExtra = false;
+    this._progressRaf = 0;
+    this._sleepTimer = null;
+    this._sleepEndsAt = null;
+    this._ambientEpoch = 0;
+    this.musicSleep = document.getElementById('music-sleep');
   }
 
   async init() {
@@ -81,6 +89,7 @@ export class AudioPlayer {
     this._renderAmbientSettings();
     this._wireEvents();
     this._wireMusicAudioEvents();
+    this._wireMediaSession();
     this._checkVisibility();
   }
 
@@ -111,6 +120,13 @@ export class AudioPlayer {
 
   toggleMode() {
     this.setMode(this.config.activeMode === 'ambient' ? 'music' : 'ambient');
+  }
+
+  toggleExtra() {
+    this._showExtra = !this._showExtra;
+    this.player.classList.toggle('show-extra', this._showExtra);
+    this._renderMusic();
+    if (typeof lucide !== 'undefined') lucide.createIcons({ root: this.player });
   }
 
   prevTrack() {
@@ -176,7 +192,7 @@ export class AudioPlayer {
     if (play) {
       this.musicAudio.play().catch(e => {
         console.error('Play failed:', e);
-        toast('Click play again to start audio', 'info');
+        toast('Press play to start audio', 'info');
       });
     }
   }
@@ -313,7 +329,21 @@ export class AudioPlayer {
     this._render();
     this._renderMusicSettingsList();
     this._checkVisibility();
-    toast('Music tracks reset to defaults', 'info');
+    toast('Music reset', 'info');
+  }
+
+  async startFocusAmbient(id) {
+    if (!this.config.ambient.sounds.some(sound => sound.id === id)) return false;
+    this._pauseAmbientAll();
+    this.stopMusic();
+    this.config.ambient.activeIds = [id];
+    this.setMode('ambient');
+    await this._playAmbientActive();
+    return this.config.ambient.playing;
+  }
+
+  stopAmbient() {
+    this._pauseAmbientAll();
   }
 
   toggleAmbient() {
@@ -334,19 +364,18 @@ export class AudioPlayer {
     if (active) {
       ambient.activeIds = ambient.activeIds.filter(soundId => soundId !== id);
       this._pauseAmbientSound(id);
-    } else {
-      ambient.activeIds.push(id);
-      if (!ambient.playing) ambient.playing = true;
-      this._playAmbientSound(id).catch(e => {
-        console.warn('Ambient playback failed:', e);
-        toast('Ambient playback failed', 'error');
-      });
+      if (ambient.activeIds.length === 0) ambient.playing = false;
+      this._saveConfig();
+      this._render();
+      this._renderAmbientSettings();
+      return;
     }
 
-    if (ambient.activeIds.length === 0) ambient.playing = false;
+    ambient.activeIds.push(id);
     this._saveConfig();
     this._render();
     this._renderAmbientSettings();
+    this._playAmbientActive();
   }
 
   setAmbientMasterVolume(value) {
@@ -369,11 +398,11 @@ export class AudioPlayer {
     const nextName = name.trim().slice(0, 80);
     const nextIcon = icon.trim();
     if (!nextName) {
-      toast('Ambient name is required', 'error');
+      toast('Enter a name', 'error');
       return;
     }
     if (!/^[a-z0-9-]{1,50}$/i.test(nextIcon)) {
-      toast('Icon must be a valid Lucide icon name', 'error');
+      toast('That icon name is not valid', 'error');
       return;
     }
 
@@ -382,13 +411,13 @@ export class AudioPlayer {
     this._saveConfig();
     this._render();
     this._renderAmbientSettings();
-    toast('Ambient sound updated', 'success');
+    toast('Ambient sound saved', 'success');
   }
 
   async syncMusicFromR2() {
     this.musicSyncBtn.disabled = true;
     this.musicSyncBtn.innerHTML = '<i data-lucide="loader"></i> Syncing...';
-    if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [this.musicSyncBtn] });
+    if (typeof lucide !== 'undefined') lucide.createIcons({ root: this.musicSyncBtn });
 
     try {
       const data = await this._fetchViaWorker('music-sync', DEFAULT_MUSIC_INDEX_URL);
@@ -404,6 +433,7 @@ export class AudioPlayer {
         seen.add(key);
         tracks.push({ name, url: streamUrl });
       });
+      if (tracks.length === 0) throw new Error('No valid tracks found');
 
       this.musicAudio.pause();
       this.config.music.tracks = tracks;
@@ -414,14 +444,14 @@ export class AudioPlayer {
       this._render();
       this._renderMusicSettingsList();
       this._checkVisibility();
-      toast(`Synced ${seen.size} tracks from R2`, 'success');
+      toast(`Synced ${seen.size} tracks`, 'success');
     } catch (e) {
       console.error('R2 sync failed:', e);
       toast(`Sync failed: ${e.message}`, 'error');
     } finally {
       this.musicSyncBtn.disabled = false;
       this.musicSyncBtn.innerHTML = '<i data-lucide="refresh-cw"></i> Sync from R2';
-      if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [this.musicSyncBtn] });
+      if (typeof lucide !== 'undefined') lucide.createIcons({ root: this.musicSyncBtn });
     }
   }
 
@@ -434,7 +464,7 @@ export class AudioPlayer {
 
     this.ambientSyncBtn.disabled = true;
     this.ambientSyncBtn.innerHTML = '<i data-lucide="loader"></i> Syncing...';
-    if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [this.ambientSyncBtn] });
+    if (typeof lucide !== 'undefined') lucide.createIcons({ root: this.ambientSyncBtn });
 
     try {
       const data = await this._fetchViaWorker('ambient-sync', ambient.indexUrl);
@@ -478,7 +508,7 @@ export class AudioPlayer {
     } finally {
       this.ambientSyncBtn.disabled = false;
       this.ambientSyncBtn.innerHTML = '<i data-lucide="refresh-cw"></i> Sync from R2';
-      if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [this.ambientSyncBtn] });
+      if (typeof lucide !== 'undefined') lucide.createIcons({ root: this.ambientSyncBtn });
     }
   }
 
@@ -495,7 +525,7 @@ export class AudioPlayer {
     this._render();
     this._renderAmbientSettings();
     this._checkVisibility();
-    toast('Ambient sounds cleared', 'info');
+    toast('Ambient cleared', 'info');
   }
 
   _defaults() {
@@ -651,7 +681,12 @@ export class AudioPlayer {
 
     if (typeof chrome !== 'undefined' && chrome.storage) {
       try {
-        chrome.storage.local.set({ [AUDIO_CONFIG_KEY]: data });
+        chrome.storage.local.set({ [AUDIO_CONFIG_KEY]: data }, () => {
+          if (chrome.runtime.lastError) {
+            console.error('Audio settings save failed:', chrome.runtime.lastError.message);
+            toast('Audio settings not saved. Check available storage.', 'error');
+          }
+        });
         return;
       } catch {}
     }
@@ -687,6 +722,9 @@ export class AudioPlayer {
     this.musicNext.addEventListener('click', e => { e.stopPropagation(); this.nextTrack(); });
     this.musicShuffle.addEventListener('click', e => { e.stopPropagation(); this.toggleMusicShuffle(); });
     this.musicRepeat.addEventListener('click', e => { e.stopPropagation(); this.cycleMusicRepeat(); });
+    this.musicSleep?.addEventListener('click', e => { e.stopPropagation(); this.cycleSleepTimer(); });
+    this.musicMore?.addEventListener('click', e => { e.stopPropagation(); this.toggleExtra(); });
+    this.musicListToggle?.addEventListener('click', e => { e.stopPropagation(); this._toggleMusicList(); });
     this.musicVolume.addEventListener('input', e => this.setMusicVolume(e.target.value));
     this.musicLabel.addEventListener('click', e => {
       e.stopPropagation();
@@ -729,7 +767,7 @@ export class AudioPlayer {
       const nextUrl = this._safeHttpsUrl(this.ambientIndexInput.value.trim());
       if (!nextUrl) {
         this.ambientIndexInput.value = this.config.ambient.indexUrl;
-        toast('Ambient index must be an HTTPS URL', 'error');
+        toast('Use an HTTPS URL', 'error');
         return;
       }
       this.config.ambient.indexUrl = nextUrl;
@@ -738,9 +776,18 @@ export class AudioPlayer {
 
     this.pill.addEventListener('pointerdown', e => this._startDrag(e));
     document.addEventListener('click', e => {
-      if (!this._musicListOpen || this.player.contains(e.target)) return;
-      this._musicListOpen = false;
-      this._render();
+      if (this.player.contains(e.target)) return;
+      let changed = false;
+      if (this._musicListOpen) {
+        this._musicListOpen = false;
+        changed = true;
+      }
+      if (this._showExtra) {
+        this._showExtra = false;
+        this.player.classList.remove('show-extra');
+        changed = true;
+      }
+      if (changed) this._render();
     });
     document.addEventListener('pointermove', e => this._moveDrag(e));
     document.addEventListener('pointerup', e => this._endDrag(e));
@@ -749,10 +796,14 @@ export class AudioPlayer {
   }
 
   _wireMusicAudioEvents() {
-    this.musicAudio.addEventListener('play', () => this._render());
-    this.musicAudio.addEventListener('pause', () => this._render());
+    this.musicAudio.addEventListener('play', () => { this._render(); this._updateMediaSession(); });
+    this.musicAudio.addEventListener('pause', () => { this._render(); this._updateMediaSession(); });
     this.musicAudio.addEventListener('timeupdate', () => {
-      if (!this._seekDragging) this._updateMusicProgressDisplay();
+      if (this._seekDragging || this._progressRaf) return;
+      this._progressRaf = requestAnimationFrame(() => {
+        this._progressRaf = 0;
+        if (!this._seekDragging) this._updateMusicProgressDisplay();
+      });
     });
     this.musicAudio.addEventListener('loadedmetadata', () => this._updateMusicProgressDisplay());
     this.musicAudio.addEventListener('ended', () => this._handleMusicEnded());
@@ -760,6 +811,77 @@ export class AudioPlayer {
       const track = this.config.music.tracks[this.config.music.currentIndex];
       toast(`${track ? track.name : 'Track'} unavailable`, 'error');
     });
+  }
+
+  // ─── MediaSession + sleep timer ──────────────
+
+  /** @private */
+  _wireMediaSession() {
+    if (!('mediaSession' in navigator)) return;
+    try {
+      navigator.mediaSession.setActionHandler('play', () => {
+        if (this.musicAudio.paused) this.toggleMusic();
+      });
+      navigator.mediaSession.setActionHandler('pause', () => this.stopMusic());
+      navigator.mediaSession.setActionHandler('previoustrack', () => this.prevTrack());
+      navigator.mediaSession.setActionHandler('nexttrack', () => this.nextTrack());
+    } catch { /* ignore unsupported actions */ }
+  }
+
+  /** @private */
+  _updateMediaSession() {
+    if (!('mediaSession' in navigator)) return;
+    try {
+      const track = this.config.music.tracks[this.config.music.currentIndex];
+      if (track) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: track.name || 'Canopy Music',
+          artist: 'Canopy',
+          album: 'Canopy',
+        });
+      }
+      navigator.mediaSession.playbackState = this.musicAudio.paused ? 'paused' : 'playing';
+    } catch { /* ignore */ }
+  }
+
+  /**
+   * Cycle sleep timer: off → 15 → 30 → 60 → off.
+   */
+  cycleSleepTimer() {
+    const order = [0, 15, 30, 60];
+    const current = this._sleepEndsAt ? Math.round((this._sleepEndsAt - Date.now()) / 60000) : 0;
+    // Find nearest step at or below current, then advance
+    let idx = 0;
+    for (let i = 0; i < order.length; i++) {
+      if (current >= order[i]) idx = i;
+    }
+    const next = order[(idx + 1) % order.length];
+    this.setSleepTimer(next);
+  }
+
+  /**
+   * Set sleep timer in minutes (0 = off).
+   * @param {number} minutes
+   */
+  setSleepTimer(minutes) {
+    if (this._sleepTimer) { clearTimeout(this._sleepTimer); this._sleepTimer = null; }
+    this._sleepEndsAt = null;
+    if (!minutes || minutes <= 0) {
+      this._renderMusic();
+      toast('Sleep timer off', 'info');
+      return;
+    }
+    this._sleepEndsAt = Date.now() + minutes * 60000;
+    this._sleepTimer = setTimeout(() => {
+      this._sleepTimer = null;
+      this._sleepEndsAt = null;
+      this.stopMusic();
+      if (this.config.ambient.playing) this.toggleAmbient();
+      this._renderMusic();
+      toast('Sleep timer ended. Audio paused.', 'info');
+    }, minutes * 60000);
+    this._renderMusic();
+    toast(`Sleep timer: ${minutes} min`, 'success');
   }
 
   _startDrag(e) {
@@ -844,7 +966,7 @@ export class AudioPlayer {
 
     this._renderMusic();
     this._renderAmbient();
-    if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [this.player] });
+    if (typeof lucide !== 'undefined') lucide.createIcons({ root: this.player });
     this._emitUpdate();
   }
 
@@ -875,7 +997,26 @@ export class AudioPlayer {
       this.musicRepeat.innerHTML = '<i data-lucide="repeat"></i>';
       this.musicRepeat.title = 'Repeat off';
     }
+    if (this.musicSleep) {
+      const active = !!this._sleepEndsAt;
+      this.musicSleep.classList.toggle('active', active);
+      this.musicSleep.title = active
+        ? `Sleep timer ends in ${Math.max(1, Math.round((this._sleepEndsAt - Date.now()) / 60000))} min (click to change)`
+        : 'Sleep timer off (click for 15/30/60 min)';
+    }
+    if (this.musicMore) {
+      this.musicMore.classList.toggle('active', this._showExtra);
+      this.musicMore.title = this._showExtra ? 'Hide controls' : 'More controls';
+    }
+    if (this.musicListToggle) {
+      this.musicListToggle.classList.toggle('active', this._musicListOpen);
+      this.musicListToggle.title = this._musicListOpen ? 'Hide track list' : 'Track list';
+    }
+    this._updateMediaSession();
     this._renderMusicCardList();
+    // _renderMusic is called directly by track/shuffle/repeat/sleep handlers,
+    // so hydrate icons here instead of relying on _render() alone.
+    if (typeof lucide !== 'undefined') lucide.createIcons({ root: this.player });
   }
 
   _renderMusicCardList() {
@@ -985,7 +1126,7 @@ export class AudioPlayer {
         this._render();
         this._renderMusicSettingsList();
       });
-      if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [row] });
+      if (typeof lucide !== 'undefined') lucide.createIcons({ root: row });
     });
   }
 
@@ -1010,7 +1151,10 @@ export class AudioPlayer {
   _renderAmbientSettings() {
     this.ambientIndexInput.value = this.config.ambient.indexUrl;
     this._renderAmbientSoundList(this.ambientSettingsList, false);
-    if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [this.ambientSettingsList, this.ambientSyncBtn] });
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons({ root: this.ambientSettingsList });
+      lucide.createIcons({ root: this.ambientSyncBtn });
+    }
   }
 
   _renderAmbientSoundList(container, compact) {
@@ -1205,30 +1349,43 @@ export class AudioPlayer {
 
   _playAmbientActive() {
     const ambient = this.config.ambient;
-    if (ambient.activeIds.length === 0) return;
+    if (ambient.activeIds.length === 0) return Promise.resolve();
     ambient.playing = true;
     this._updateAmbientVolumes();
+    const epoch = this._ambientEpoch;
     const plays = ambient.activeIds.map(id => this._playAmbientSound(id));
-    Promise.allSettled(plays).then(results => {
+    const done = Promise.allSettled(plays).then(results => {
+      if (epoch !== this._ambientEpoch) return;
       if (results.every(result => result.status === 'rejected')) {
         ambient.playing = false;
         this._render();
-        toast('Ambient playback failed', 'error');
+        toast('Sound did not play', 'error');
       }
     });
     this._saveConfig();
     this._render();
+    return done;
   }
 
   _playAmbientSound(id) {
     const sound = this.config.ambient.sounds.find(item => item.id === id);
     if (!sound) return Promise.reject(new Error('Unknown sound'));
-    return this._playAmbientWebAudio(sound).catch(() => this._playAmbientHtmlAudio(sound));
+    const epoch = this._ambientEpoch;
+    return this._playAmbientWebAudio(sound, epoch).catch(error => {
+      if (!this._ambientWanted(sound.id, epoch)) return;
+      return this._playAmbientHtmlAudio(sound, epoch);
+    });
   }
 
-  async _playAmbientWebAudio(sound) {
+  _ambientWanted(id, epoch) {
+    return epoch === this._ambientEpoch && this.config.ambient.playing
+      && this.config.ambient.activeIds.includes(id);
+  }
+
+  async _playAmbientWebAudio(sound, epoch = this._ambientEpoch) {
     const ctx = this._ensureAmbientAudioContext();
     await ctx.resume();
+    if (!this._ambientWanted(sound.id, epoch)) return;
 
     let node = this.ambientNodes.get(sound.id);
     if (node?.source) return;
@@ -1248,6 +1405,8 @@ export class AudioPlayer {
       node.loading = null;
     }
 
+    // Stop/reselect while decoding must not resurrect a sound or create duplicate loops.
+    if (!this._ambientWanted(sound.id, epoch) || node.source) return;
     const source = ctx.createBufferSource();
     const gain = ctx.createGain();
     source.buffer = node.buffer;
@@ -1263,7 +1422,8 @@ export class AudioPlayer {
     source.start(0);
   }
 
-  async _playAmbientHtmlAudio(sound) {
+  async _playAmbientHtmlAudio(sound, epoch = this._ambientEpoch) {
+    if (!this._ambientWanted(sound.id, epoch)) return;
     const audio = this._getAmbientAudio(sound);
     audio.loop = true;
     audio.preload = 'auto';
@@ -1278,6 +1438,7 @@ export class AudioPlayer {
   }
 
   _pauseAmbientAll() {
+    this._ambientEpoch++;
     this.config.ambient.playing = false;
     for (const id of this.ambientNodes.keys()) this._stopAmbientNode(id);
     for (const audio of this.ambientAudios.values()) audio.pause();

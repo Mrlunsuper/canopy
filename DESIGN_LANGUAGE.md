@@ -1,88 +1,115 @@
-# Canopy Design Language
+# Canopy Design Language — Field Guide
 
-## Context and Goals
+## Concept
 
-Canopy uses a Bento visual direction: a calm desktop launcher made of modular surfaces, clear hierarchy, soft spacing, and accessible controls.
+Canopy uses a **Field Guide** visual direction: a warm editorial desktop that
+feels like a naturalist's field journal laid over deep botanical canvas.
+Paper panels, ink text, terracotta wax-seal accent, and a serif display face
+give the new-tab workspace a calm, authored character.
 
-This direction replaces the previous unreleased visual language. Do not append alternate theme passes or keep legacy arcade, glass, or doodle guidance as an active design source.
+This direction replaces the previous bento and glass drafts. Do not append
+alternate theme passes or reintroduce arcade, neon, heavy-glass, or doodle
+themes.
 
-## Design Tokens and Foundations
+## Tokens and Foundations
 
-Use `styles.css` as the source of truth.
+`styles.css` is the source of truth.
 
-- Typography: `--font` uses Inter-compatible system UI fallbacks; `--font-mono` uses JetBrains Mono-compatible fallbacks.
-- Core tokens: `--primary #FAD4C0`, `--secondary #80A1C1`, `--success #16A34A`, `--warning #D97706`, `--danger #DC2626`, `--surface #FFF5E6`, `--text #111827`.
-- Surfaces: panels and modules use warm surface tokens with subtle contrast and 1px borders.
-- Radius: cards and repeated blocks stay at 8px; pills are reserved for badges, sliders, and round icon controls.
-- Spacing: use the 4/8/12/16/24/32 scale.
-- Focus: every interactive element must expose `--focus-ring` on `:focus-visible`.
+- **Fonts (bundled locally in `fonts/`, no CDN)**:
+  - `--font-display`: Fraunces (variable, + italic) — clock, panel titles,
+    modal headers, track titles, sticky notes, trash label.
+  - `--font`: Karla (variable) — body, labels, buttons, forms.
+  - `--font-mono`: IBM Plex Mono 500 — numerals: temps, timer, calc answers,
+    track indexes, badges.
+- **Ink / Paper / Terracotta**: `--ink #24281f`, `--paper #fffbf3`,
+  `--terra #c2543a` (+ `--terra-strong`, `--terra-soft`). Terracotta is the
+  single identity accent: primary buttons, selected states, section headings,
+  form labels, mode labels, progress, folder badges.
+- **Canvas wallpapers** (`--bg-*`): deep botanical radial washes, light-on-dark
+  by design. The light `[data-theme]` block keeps paper panels on the canvas;
+  the dark `[data-theme="dark"]` block is a tone-on-tone swap (paper→ink
+  surfaces) with the same terracotta family.
+- **Texture**: ink grain over the desktop (`#desktop::before`), faint paper
+  fiber on shared panel surfaces (`--grain`).
+- **Radius**: panels 14px (`--radius-lg`), modules/inputs 6–8px, pills only
+  for badges, round icon controls, and the date chip.
+- **Focus**: every interactive element exposes `--focus-ring` (terracotta) on
+  `:focus-visible`.
 
 ## Component-Level Rules
 
 Desktop icons:
 
-- Must preserve the grid contract: `--icon-size: 72px`; `.desktop-icon` width stays `calc(var(--icon-size) + 48px)`.
-- Icon tiles use bento surfaces with clear selected, hover, drag-over, and focus-visible states.
-- Labels must truncate on one line and keep enough contrast on wallpaper backgrounds.
-- Drag-over and selected states may change border, background, and shadow, but must not change grid metrics.
+- Keep the grid contract: `--icon-size: 72px`; `.desktop-icon` width stays
+  `calc(var(--icon-size) + 48px)`.
+- Tiles are paper cards on canvas; labels are ink chips with backdrop blur.
+- Selected state uses a solid terracotta seal label; hover lifts the tile 2px.
+- Hover/selected/drag-over must not change grid metrics.
 
-Widgets:
+Clock (hero):
 
-- Clock, Today, weather, audio, and Pomodoro use compact bento blocks with shared border, shadow, and spacing tokens.
-- Primary play/start actions use `--primary-strong`; secondary controls use neutral surface states.
-- Active/running states use border color and a small accent indicator, not glow.
+- Fraunces light (~340 weight), large; the date sits in an italic Fraunces
+  chip with a frosted border. No card behind the clock.
+
+Widgets (Today panel, audio, weather, Pomodoro):
+
+- Shared paper panel surface (`--surface-panel` + `--grain` + blur).
+- Play/start actions are ink circles that turn terracotta on hover; running
+  states use border clarity and small terracotta indicators, never glow.
+- Times and temps use `--font-mono` with tabular numerals.
 
 Panels, menus, and modals:
 
-- Settings, folder overlay, command palette, context menus, toasts, and modals share the same panel, row, and control treatments.
-- Headers use a subtle `--secondary-soft` band and clear title hierarchy.
-- Do not create nested card stacks. Inside a panel, children should be rows, controls, or unframed content groups.
+- Settings is a side sheet; command palette, folder overlay, import modal,
+  Wallhaven modal, context menus, and toasts share the paper panel treatment.
+- Modal headers use Fraunces titles over a faint separator — no colored
+  section bands.
+- Inside a panel, children are rows, controls, or unframed groups.
 
 Buttons and inputs:
 
-- Text buttons must be at least 40px tall; prefer 44px when space allows.
-- Icon-only controls must keep a minimum 32px square hit target.
-- Inputs use `--surface-raised`, `--border`, and visible focus rings.
-- Disabled states must reduce opacity without making labels unreadable.
+- `.btn-primary`: terracotta fill with warm shadow; `.btn-secondary`/`.settings-btn`:
+  paper raised. Text controls ≥40px tall; icon controls ≥32px square.
+- Inputs use `--surface-raised`, visible terracotta focus rings.
+- Section headings and form labels: terracotta, uppercase, letterspaced.
 
-Responsive behavior:
+Motion:
 
-- Long labels must truncate inside icon labels, track rows, widgets, and settings rows.
-- Settings navigation becomes horizontally scannable on small screens.
-- Fixed-format UI such as icon tiles, widgets, and modal grids must keep stable dimensions.
+- One orchestrated load: clock/FABs settle first, then widgets and icons rise
+  in with staggered `animation-delay` (`riseIn`, `settleIn`, `--ease-spring`).
+- Micro-interactions: hover lifts, play-button scale, context/palette rows
+  nudge 2px right. All disabled under `prefers-reduced-motion`.
 
-## Accessibility Requirements and Testable Acceptance Criteria
+## Accessibility Requirements
 
-- Every button, input, textarea, and focusable desktop item shows a visible focus ring when reached by keyboard.
-- Text contrast must meet WCAG 2.2 AA against its immediate surface.
-- No hover-only affordance may be required to complete a core workflow.
-- `prefers-reduced-motion: reduce` disables nonessential animations and transitions.
-- Touch targets for text controls are at least 40px high; compact icon controls are at least 32px square.
+- Visible terracotta focus ring on every focusable control (keyboard path).
+- WCAG 2.2 AA contrast against the immediate surface (ink on paper, paper on
+  ink; verify custom wallpaper readability via the custom-wallpaper scrim).
+- No hover-only affordance required for core workflows.
+- Touch targets: ≥40px text controls, ≥32px compact icon controls.
 
-## Content and Tone Standards
+## Content and Tone
 
-Use concise, confident labels.
+Concise, confident labels: "Import from Bookmarks", "Drop to delete",
+"Refresh weather".
 
-- Use “Import from Bookmarks”, not “Bring over browser places”.
-- Use “Drop to delete”, not “Release here to make this disappear”.
-- Use “Refresh weather”, not “Ask again”.
+## Anti-Patterns
 
-Keep expression in layout and color, not in critical UI copy.
-
-## Anti-Patterns and Prohibited Implementations
-
-- Do not append a second late-file override pass.
-- Do not reintroduce arcade, pixel, neon, heavy glass, or doodle themes.
-- Do not import CDN fonts or external CSS.
-- Do not use decorative blobs or gradient orbs as standalone background elements.
-- Do not shrink the desktop icon grid without updating `GRID_COL`, `GRID_ROW`, drag/drop bounds, auto-arrange, and folder behavior together.
-- Do not use raw colors where a semantic Bento token exists, except for fixed wallpaper presets and sticky note swatches.
+- No second late-file override pass; no arcade/pixel/neon/heavy-glass/doodle.
+- No CDN fonts or external CSS; fonts ship in `fonts/`.
+- No decorative blobs or standalone gradient orbs.
+- Do not shrink the icon grid without updating `GRID_COL`, `GRID_ROW`,
+  drag/drop bounds, auto-arrange, and folder behavior together.
+- No raw colors where semantic tokens exist (except wallpaper presets and
+  sticky-note swatches).
 
 ## QA Checklist
 
-- Reload the unpacked extension and verify the new tab opens without layout overlap.
-- Tab through desktop, widgets, settings, modals, and command palette; every focused control must be visible.
-- Check icon hover, selected, drag-over, and folder badge states.
-- Check audio, weather, Pomodoro, Today panel, settings, context menu, folder modal, bookmark import modal, Wallhaven modal, and sticky notes.
+- Reload unpacked extension; new tab opens without layout overlap.
+- Fonts load from `fonts/` (check DevTools network; no external requests).
+- Tab through desktop, widgets, settings, modals, command palette.
+- Check icon hover/selected/drag-over/folder badge states.
+- Check audio, weather, Pomodoro, Today panel, settings, context menu, folder
+  modal, bookmark import, Wallhaven modal, sticky notes.
 - Check narrow viewport behavior around 680px and 760px.
-- Search `styles.css` for old theme names before release; there should be no active late override theme.
+- Verify entry animation plays once and reduced-motion disables it.

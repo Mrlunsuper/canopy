@@ -21,6 +21,7 @@ export class DesktopRenderer {
     this.onIconContext = onIconContext;
 
     this.selectedIconId = null;
+    this._lastDeleted = null;
   }
 
   // ═══════════════════════════════════════════════
@@ -33,6 +34,9 @@ export class DesktopRenderer {
    */
   render(force = false) {
     const grid = document.getElementById('desktop-grid');
+    if (force) grid.replaceChildren();
+    const empty = document.getElementById('desktop-empty');
+    empty?.classList.toggle('hidden', this.storage.data.items.length > 0);
     const existingEls = new Map();
     const iconRefreshEls = [];
     Array.from(grid.children).forEach(c => {
@@ -59,6 +63,16 @@ export class DesktopRenderer {
           label.textContent = item.title || item.url || 'Shortcut';
           label.title = item.title || '';
         }
+        if (item.type !== 'folder') {
+          const img = existing.querySelector('.icon-img');
+          if (img && (existing.dataset.icon !== (item.icon || '') || existing.dataset.url !== (item.url || ''))) {
+            const wrap = existing.querySelector('.icon-img-wrap');
+            wrap.replaceChildren();
+            this._buildShortcutVisual(item, wrap);
+            existing.dataset.icon = item.icon || '';
+            existing.dataset.url = item.url || '';
+          }
+        }
         if (item.type === 'folder') {
           const wrap = existing.querySelector('.icon-img-wrap');
           if (wrap) {
@@ -78,7 +92,7 @@ export class DesktopRenderer {
     // Create Lucide icons for new elements and refreshed folder previews.
     const newEls = this.storage.data.items
       .filter(item => !existingEls.has(item.id))
-      .map(item => grid.querySelector(`.desktop-icon[data-id="${item.id}"]`))
+      .map(item => grid.querySelector(`.desktop-icon[data-id="${CSS.escape(item.id)}"]`))
       .filter(Boolean);
     iconRefreshEls.push(...newEls);
     if (iconRefreshEls.length > 0 && typeof lucide !== 'undefined') {
@@ -117,6 +131,8 @@ export class DesktopRenderer {
     const el = document.createElement('div');
     el.className  = 'desktop-icon';
     el.dataset.id = item.id;
+    el.dataset.icon = item.icon || '';
+    el.dataset.url = item.url || '';
     el.draggable  = true;
 
     // icon visual
@@ -319,7 +335,7 @@ export class DesktopRenderer {
     if (!item) return;
 
     // Find the DOM element
-    const el = document.querySelector(`.desktop-icon[data-id="${id}"]`);
+    const el = document.querySelector(`.desktop-icon[data-id="${CSS.escape(id)}"]`);
     if (!el) return;
 
     this.selectIcon(el);
@@ -392,11 +408,11 @@ export class DesktopRenderer {
 
     if (newTitle && newTitle !== item.title) {
       item.title = newTitle;
-      this.storage.saveData();
+      const saved = this.storage.saveData();
       // Update label and tooltip
       label.textContent = newTitle;
       label.title = newTitle;
-      toast(`Renamed to "${newTitle}"`, 'success');
+      saved.then(ok => { if (ok) toast(`Renamed to "${newTitle}"`, 'success'); });
     } else {
       // Restore original if empty or unchanged
       label.textContent = label.dataset.originalTitle || item.title;
@@ -446,6 +462,24 @@ export class DesktopRenderer {
   // ═══════════════════════════════════════════════
 
   /**
+   * Close gaps in the desktop grid, preserving visual reading order.
+   * Runs after add/delete so the grid stays tidy without re-sorting.
+   */
+  compactLayout() {
+    const grid = document.getElementById('desktop-grid');
+    const width = grid?.offsetWidth || 0;
+    if (width < GRID_COL) return;
+    const cols = Math.max(1, Math.floor((width - 20) / GRID_COL));
+
+    const items = [...this.storage.data.items].sort((a, b) =>
+      ((a.position?.y || 0) - (b.position?.y || 0)) || ((a.position?.x || 0) - (b.position?.x || 0)));
+    items.forEach((item, idx) => {
+      item.position = { x: (idx % cols) * GRID_COL, y: Math.floor(idx / cols) * GRID_ROW };
+    });
+    this.storage.data.items = items;
+  }
+
+  /**
    * Add a shortcut to the desktop.
    * @param {object} opts
    * @param {string} opts.url
@@ -466,7 +500,8 @@ export class DesktopRenderer {
       children: [],
     };
     this.storage.data.items.push(item);
-    this.storage.saveData();
+    this.compactLayout();
+    const saved = this.storage.saveData();
     this.render();
     return item;
   }
@@ -492,7 +527,8 @@ export class DesktopRenderer {
       children: [],
     };
     this.storage.data.items.push(item);
-    this.storage.saveData();
+    this.compactLayout();
+    const saved = this.storage.saveData();
     this.render();
     return item;
   }
@@ -508,12 +544,13 @@ export class DesktopRenderer {
       item.position = pos || this.findFreePosition();
       this.storage.data.items.push(item);
       this.storage.removeEmptyFolderForList(parentList);
-      this.storage.saveData();
+      this.compactLayout();
+      const saved = this.storage.saveData();
       this.render();
 
       document.dispatchEvent(new CustomEvent('canopy-item-moved-desktop', { detail: { id } }));
 
-      toast(`Moved "${item.title}" to desktop`, 'success');
+      saved.then(ok => { if (ok) toast(`Moved "${item.title}" to desktop`, 'success'); });
     }
   }
 
@@ -522,9 +559,14 @@ export class DesktopRenderer {
    * @param {string} id
    */
   deleteItem(id) {
+    const parentList = this.storage.findParentList(id);
+    const index = parentList ? parentList.findIndex(i => i.id === id) : -1;
     const removed = this.storage.removeItem(id);
     if (removed) {
-      this.storage.saveData();
+      this._lastDeleted = { item: removed, parentList, index };
+      if (this.selectedIconId === id) this.selectedIconId = null;
+      if (parentList === this.storage.data.items) this.compactLayout();
+      const saved = this.storage.saveData();
       this.render();
       
       // If the removed item was a folder, we might need to close the overlay
@@ -535,8 +577,50 @@ export class DesktopRenderer {
       // For now, just dispatch an event so ModalManager can catch it.
       document.dispatchEvent(new CustomEvent('canopy-item-deleted', { detail: { id } }));
 
-      toast(`Deleted "${removed.title}"`, 'info');
+      saved.then(ok => { if (ok) toast(`Deleted "${removed.title}". Ctrl+Z to undo.`, 'info'); });
     }
+  }
+
+  /**
+   * Restore the last deleted item (if any).
+   * @returns {boolean} true when something was restored
+   */
+  restoreLastDeleted() {
+    const last = this._lastDeleted;
+    if (!last) return false;
+    const { item, parentList, index } = last;
+    // Parent folder may have been deleted since — fall back to desktop
+    let target = parentList;
+    if (!target || (target !== this.storage.data.items && !this._listStillAlive(target))) {
+      target = this.storage.data.items;
+      if (!item.position) item.position = this.findFreePosition();
+    }
+    // Desktop slot may be taken by a newer icon — find a free cell instead
+    if (target === this.storage.data.items && item.position) {
+      const occupied = new Set(target.filter(i => i.id !== item.id).map(i => `${i.position?.x},${i.position?.y}`));
+      if (occupied.has(`${item.position.x},${item.position.y}`)) {
+        item.position = this.findFreePosition();
+      }
+    }
+    const insertAt = Number.isInteger(index) && index >= 0 && index <= target.length ? index : target.length;
+    target.splice(insertAt, 0, item);
+    this._lastDeleted = null;
+    if (target === this.storage.data.items) this.compactLayout();
+    const saved = this.storage.saveData();
+    this.render();
+    document.dispatchEvent(new CustomEvent('canopy-item-restored', { detail: { id: item.id } }));
+    saved.then(ok => { if (ok) toast(`Restored "${item.title}"`, 'success'); });
+    return true;
+  }
+
+  /** @private */
+  _listStillAlive(target, list = this.storage.data.items) {
+    if (list === target) return true;
+    for (const item of list) {
+      if (item.children === target) return true;
+      if (item.children?.length && this._listStillAlive(target, item.children)) return true;
+    }
+    return false;
   }
 
   /**
@@ -547,8 +631,8 @@ export class DesktopRenderer {
     const data = this.storage.data;
     const occupied = new Set(data.items.map(i => `${i.position.x},${i.position.y}`));
     const grid = document.getElementById('desktop-grid');
-    const cols = Math.floor((grid.offsetWidth  - 20) / GRID_COL);
-    const rows = Math.floor((grid.offsetHeight - 20) / GRID_ROW);
+    const cols = Math.max(1, Math.floor((grid.clientWidth - 20) / GRID_COL));
+    const rows = Math.max(1, data.items.length + 1);
 
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
@@ -630,7 +714,7 @@ export class DesktopRenderer {
     });
 
     this.storage.data.items = items;
-    this.storage.saveData();
+    const saved = this.storage.saveData();
 
     // Animate icons into place
     this.render();
@@ -642,6 +726,6 @@ export class DesktopRenderer {
       requestAnimationFrame(() => { el.style.opacity = '1'; });
     });
 
-    toast('Auto arranged ✓', 'success');
+    saved.then(ok => { if (ok) toast('Icons arranged', 'success'); });
   }
 }

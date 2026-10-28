@@ -44,6 +44,20 @@ const WMO_CODES = {
   99: { icon: '⛈️', label: 'Thunderstorm + heavy hail' },
 };
 
+// WMO code → Lucide icon name (day variant; clear uses moon at night)
+const WMO_LUCIDE = {
+  0: 'sun', 1: 'sun', 2: 'cloud-sun', 3: 'cloudy',
+  45: 'cloud-fog', 48: 'cloud-fog',
+  51: 'cloud-drizzle', 53: 'cloud-drizzle', 55: 'cloud-drizzle',
+  56: 'cloud-drizzle', 57: 'cloud-drizzle',
+  61: 'cloud-rain', 63: 'cloud-rain', 65: 'cloud-rain',
+  66: 'cloud-rain', 67: 'cloud-rain',
+  71: 'cloud-snow', 73: 'cloud-snow', 75: 'snowflake', 77: 'cloud-snow',
+  80: 'cloud-drizzle', 81: 'cloud-rain', 82: 'cloud-rain',
+  85: 'cloud-snow', 86: 'cloud-snow',
+  95: 'cloud-lightning', 96: 'cloud-lightning', 99: 'cloud-lightning',
+};
+
 export class WeatherWidget {
   constructor() {
     this.player       = document.getElementById('weather-widget');
@@ -61,6 +75,7 @@ export class WeatherWidget {
     this._refreshTimer = null;
     this._refreshTimeout = null;
     this._fetchPromise = null;
+    this._forecastEl = null;
   }
 
   // ═══════════════════════════════════════════════
@@ -70,6 +85,7 @@ export class WeatherWidget {
   async init() {
     this._loadConfig();
     this._applyPosition();
+    this._ensureForecastEl();
     this._render();
     this._wireEvents();
     this._wireSettings();
@@ -101,12 +117,30 @@ export class WeatherWidget {
     this._render();
   }
 
+  /** @private */
+  _ensureForecastEl() {
+    if (this._forecastEl || !this.pill) return;
+    this._forecastEl = document.createElement('div');
+    this._forecastEl.id = 'weather-forecast';
+    this._forecastEl.className = 'weather-forecast';
+    this.pill.appendChild(this._forecastEl);
+  }
+
+  /** @private */
+  _lucideFor(code, isDay = 1) {
+    const c = Number(code);
+    if ((c === 0 || c === 1) && Number(isDay) !== 1) return 'moon';
+    if (c === 2 && Number(isDay) !== 1) return 'cloud-moon';
+    return WMO_LUCIDE[c] || 'thermometer';
+  }
+
   getSnapshot() {
     const d = this.config.lastData;
     const info = d ? this._getWeatherInfo(d.weatherCode) : { icon: '🌡️', label: 'Loading...' };
     return {
       hasData: Boolean(d),
       icon: info.icon,
+      iconLucide: d ? this._lucideFor(d.weatherCode, d.isDay) : 'thermometer',
       temperature: d ? this._formatTemp(d.temperature) : '--°',
       description: info.label,
       details: d ? {
@@ -117,6 +151,12 @@ export class WeatherWidget {
       location: this.config.cityName || '',
       updated: d ? this._formatUpdatedTime(d.updatedAt) : '',
       unit: this.config.unit,
+      daily: (d?.daily || []).map(day => ({
+        date: day.date,
+        max: this._formatTemp(day.max),
+        min: this._formatTemp(day.min),
+        lucide: this._lucideFor(day.code, 1),
+      })),
     };
   }
 
@@ -158,9 +198,17 @@ export class WeatherWidget {
 
       const url = `${FORECAST_API}?latitude=${lat}&longitude=${lon}`
         + `&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,is_day`
+        + `&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=7`
         + `&timezone=auto`;
 
-      const res = await fetch(url);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      let res;
+      try {
+        res = await fetch(url, { signal: controller.signal });
+      } finally {
+        clearTimeout(timeout);
+      }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
 
@@ -171,6 +219,17 @@ export class WeatherWidget {
       }
 
       if (data.current) {
+        const daily = [];
+        const dd = data.daily || {};
+        const dates = dd.time || [];
+        for (let i = 0; i < dates.length; i++) {
+          daily.push({
+            date: dates[i],
+            code: dd.weather_code?.[i],
+            max: dd.temperature_2m_max?.[i],
+            min: dd.temperature_2m_min?.[i],
+          });
+        }
         this.config.lastData = {
           temperature: data.current.temperature_2m,
           humidity: data.current.relative_humidity_2m,
@@ -180,6 +239,7 @@ export class WeatherWidget {
           isDay: data.current.is_day,
           time: data.current.time,
           updatedAt: Date.now(),
+          daily,
         };
         this._saveCache(this.config.lastData);
         this._render();
@@ -227,6 +287,7 @@ export class WeatherWidget {
       latitude: null,
       longitude: null,
       cityName: '',
+      savedCities: [], // [{ name, latitude, longitude }] max 3
       position: null,
       lastData: null,
       unit: 'C',  // 'C' or 'F'
@@ -241,6 +302,7 @@ export class WeatherWidget {
         this.config = { ...this._defaults(), ...parsed };
         // Don't persist lastData in config
         this.config.lastData = null;
+        if (!Array.isArray(this.config.savedCities)) this.config.savedCities = [];
       }
     } catch {}
 
@@ -336,52 +398,98 @@ export class WeatherWidget {
     this.player.classList.add(timeClass, moodClass);
   }
 
+  _setIcon(iconName) {
+    if (!this.iconEl) return;
+    this.iconEl.innerHTML = `<i data-lucide="${iconName}"></i>`;
+  }
+
   _render() {
     const d = this.config.lastData;
 
     if (d) {
       this._applyWeatherMood(d);
       const info = this._getWeatherInfo(d.weatherCode);
-      this.iconEl.textContent = info.icon;
+      this._setIcon(this._lucideFor(d.weatherCode, d.isDay));
       this.tempEl.textContent = this._formatTemp(d.temperature);
       this.descEl.textContent = info.label;
 
       // Detail items
-      this.detailsEl.innerHTML = `
-        <span class="weather-detail" title="Feels like">
-          <i data-lucide="thermometer"></i>
-          ${this._formatTemp(d.feelsLike)}
-        </span>
-        <span class="weather-detail" title="Humidity">
-          <i data-lucide="droplets"></i>
-          ${d.humidity}%
-        </span>
-        <span class="weather-detail" title="Wind speed">
-          <i data-lucide="wind"></i>
-          ${Math.round(d.windSpeed)} km/h
-        </span>
-      `;
+      this.detailsEl.innerHTML = '';
+      [
+        ['thermometer', 'Feels like', this._formatTemp(d.feelsLike)],
+        ['droplets', 'Humidity', `${d.humidity}%`],
+        ['wind', 'Wind speed', `${Math.round(d.windSpeed)} km/h`],
+      ].forEach(([iconName, title, value]) => {
+        const item = document.createElement('span');
+        item.className = 'weather-detail';
+        item.title = title;
+        const glyph = document.createElement('i');
+        glyph.dataset.lucide = iconName;
+        item.appendChild(glyph);
+        item.append(` ${value}`);
+        this.detailsEl.appendChild(item);
+      });
 
       this.locationEl.textContent = this.config.cityName || '';
-      if (this.updatedEl) this.updatedEl.textContent = this._formatUpdatedTime(d.updatedAt);
+      const updatedText = this._formatUpdatedTime(d.updatedAt);
+      if (this.updatedEl) this.updatedEl.textContent = updatedText;
+      if (this.refreshBtn) this.refreshBtn.title = updatedText ? `Refresh weather (${updatedText.toLowerCase()})` : 'Refresh weather';
       this.player.classList.remove('loading');
+      this._renderForecast(d);
     } else {
       this._applyWeatherMood(null);
-      this.iconEl.textContent = '🌡️';
+      this._setIcon('thermometer');
       this.tempEl.textContent = '--°';
       this.descEl.textContent = 'Loading...';
       this.detailsEl.innerHTML = '';
       this.locationEl.textContent = '';
       if (this.updatedEl) this.updatedEl.textContent = '';
       this.player.classList.add('loading');
+      if (this._forecastEl) this._forecastEl.innerHTML = '';
     }
 
     // Re-create lucide icons
     if (typeof lucide !== 'undefined') {
-      lucide.createIcons({ nodes: [this.detailsEl, this.refreshBtn] });
+      lucide.createIcons({ root: this.player });
     }
 
     this._emitUpdate();
+  }
+
+  /** @private */
+  _renderForecast(d) {
+    if (!this._forecastEl) return;
+    const days = (d.daily || []).slice(0, 7);
+    if (days.length === 0) { this._forecastEl.innerHTML = ''; return; }
+    this._forecastEl.innerHTML = '';
+    days.forEach((day, i) => {
+      const cell = document.createElement('div');
+      cell.className = 'weather-forecast-day';
+      const label = i === 0 ? 'Today' : this._weekdayLabel(day.date);
+      cell.title = `${label}: ${this._formatTemp(day.max)} / ${this._formatTemp(day.min)}`;
+      const dayEl = document.createElement('span');
+      dayEl.className = 'weather-forecast-label';
+      dayEl.textContent = label.slice(0, 3);
+      const icon = document.createElement('span');
+      icon.className = 'weather-forecast-icon';
+      const glyph = document.createElement('i');
+      glyph.dataset.lucide = this._lucideFor(day.code, 1);
+      icon.appendChild(glyph);
+      const temps = document.createElement('span');
+      temps.className = 'weather-forecast-temps';
+      temps.textContent = Number.isFinite(day.max) && Number.isFinite(day.min)
+        ? `${this._formatTemp(day.max).replace(/°[CF]$/, '°')}/${this._formatTemp(day.min).replace(/°[CF]$/, '°')}`
+        : '--°/--°';
+      cell.append(dayEl, icon, temps);
+      this._forecastEl.appendChild(cell);
+    });
+  }
+
+  /** @private */
+  _weekdayLabel(isoDate) {
+    try {
+      return new Date(isoDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' });
+    } catch { return ''; }
   }
 
   _emitUpdate() {
@@ -478,7 +586,14 @@ export class WeatherWidget {
         const query = cityInput.value.trim();
         if (!query) return;
         try {
-          const res = await fetch(`${GEOCODING_API}?name=${encodeURIComponent(query)}&count=1&language=en`);
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 10000);
+          let res;
+          try {
+            res = await fetch(`${GEOCODING_API}?name=${encodeURIComponent(query)}&count=1&language=en`, { signal: controller.signal });
+          } finally {
+            clearTimeout(timeout);
+          }
           const data = await res.json();
           if (data.results && data.results.length > 0) {
             const r = data.results[0];
@@ -486,7 +601,9 @@ export class WeatherWidget {
             this.config.longitude = r.longitude;
             this.config.cityName = r.name;
             cityInput.value = r.name;
+            this._rememberCity(r.name, r.latitude, r.longitude);
             this._saveConfig();
+            this._renderCityList();
             await this._fetchWeather();
             toast(`Weather set to ${r.name}`, 'success');
           } else {
@@ -502,5 +619,56 @@ export class WeatherWidget {
         if (e.key === 'Enter') doSearch();
       });
     }
+
+    this._renderCityList();
+  }
+
+  /** @private */
+  _rememberCity(name, latitude, longitude) {
+    const same = c => Math.abs(c.latitude - latitude) < 0.01 && Math.abs(c.longitude - longitude) < 0.01;
+    const list = this.config.savedCities.filter(c => !same(c));
+    list.unshift({ name, latitude, longitude });
+    this.config.savedCities = list.slice(0, 3);
+  }
+
+  /** @private */
+  _renderCityList() {
+    const container = document.getElementById('weather-city-list');
+    if (!container) return;
+    container.innerHTML = '';
+    this.config.savedCities.forEach(city => {
+      const row = document.createElement('div');
+      row.className = 'weather-city-row';
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'settings-btn compact weather-city-btn';
+      btn.textContent = city.name;
+      btn.classList.toggle('active',
+        Math.abs((this.config.latitude ?? 0) - city.latitude) < 0.01 &&
+        Math.abs((this.config.longitude ?? 0) - city.longitude) < 0.01);
+      btn.addEventListener('click', async () => {
+        this.config.latitude = city.latitude;
+        this.config.longitude = city.longitude;
+        this.config.cityName = city.name;
+        const cityInput = document.getElementById('weather-city-input');
+        if (cityInput) cityInput.value = city.name;
+        this._saveConfig();
+        this._renderCityList();
+        await this._fetchWeather();
+      });
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'settings-btn compact weather-city-remove';
+      del.title = `Remove ${city.name}`;
+      del.textContent = '×';
+      del.addEventListener('click', () => {
+        this.config.savedCities = this.config.savedCities.filter(c =>
+          Math.abs(c.latitude - city.latitude) >= 0.01 || Math.abs(c.longitude - city.longitude) >= 0.01);
+        this._saveConfig();
+        this._renderCityList();
+      });
+      row.append(btn, del);
+      container.appendChild(row);
+    });
   }
 }

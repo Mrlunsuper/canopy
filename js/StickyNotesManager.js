@@ -1,8 +1,11 @@
 import { STICKY_NOTES_KEY, DELETED_NOTES_KEY, uid, toast } from './utils.js';
+import './storage-sync.js';
+const { clone, merge, update } = globalThis.CanopyPersistence;
 
 const NOTE_COLORS = ['yellow', 'pink', 'blue', 'green', 'orange', 'purple', 'white', 'red', 'teal', 'brown', 'lavender', 'coral'];
 const DEBOUNCE_MS = 600;
-const DELETED_TTL = 300000;
+const DELETED_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
+const PIN_Z_BOOST = 100000;
 const MIN_W = 200;
 const MIN_H = 120;
 const DEFAULT_W = 280;
@@ -18,14 +21,34 @@ export class StickyNotesManager {
     this._resizeState = null;
     this._focusedId = null;
     this._searchQuery = '';
+    this._baselines = {};
+    this._writeQueue = Promise.resolve(true);
   }
 
   async init() {
     await this._loadData();
+    this._baselines[STICKY_NOTES_KEY] = clone(this.notes);
+    this._baselines[DELETED_NOTES_KEY] = clone(this.deletedNotes);
     this._purgeExpiredDeleted();
     this._renderAll();
     this._renderDeletedSettings();
     this._wireGlobalEvents();
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area !== 'local' || (!changes[STICKY_NOTES_KEY] && !changes[DELETED_NOTES_KEY])) return;
+        // Capture live content before merging a remote update.
+        this._flushPendingSaves();
+        for (const [key, field] of [[STICKY_NOTES_KEY, 'notes'], [DELETED_NOTES_KEY, 'deletedNotes']]) {
+          const incoming = changes[key]?.newValue;
+          if (!Array.isArray(incoming)) continue;
+          this[field] = merge(this._baselines[key] || [], this[field], incoming);
+          this._baselines[key] = clone(incoming);
+        }
+        // Do not replace the focused editor or interrupt an active drag/resize.
+        if (!this._focusedId && !this._dragState && !this._resizeState) this._renderAll();
+        this._renderDeletedSettings();
+      });
+    }
   }
 
   // ─── Persistence ──────────────────────────────
@@ -36,6 +59,7 @@ export class StickyNotesManager {
         chrome.storage.local.get([STICKY_NOTES_KEY, DELETED_NOTES_KEY], result => {
           this.notes = result[STICKY_NOTES_KEY] || [];
           this.deletedNotes = result[DELETED_NOTES_KEY] || [];
+          this._normalizeNotes();
           resolve();
         });
       } else {
@@ -45,25 +69,57 @@ export class StickyNotesManager {
           if (n) this.notes = JSON.parse(n);
           if (d) this.deletedNotes = JSON.parse(d);
         } catch { /* ignore */ }
+        this._normalizeNotes();
         resolve();
       }
     });
   }
 
-  _saveNotes() {
-    if (typeof chrome !== 'undefined' && chrome.storage) {
-      chrome.storage.local.set({ [STICKY_NOTES_KEY]: this.notes });
-    } else {
-      localStorage.setItem(STICKY_NOTES_KEY, JSON.stringify(this.notes));
-    }
+  /** @private — backfill pinned/z for notes saved before P2 */
+  _normalizeNotes() {
+    let maxZ = this.zIndexCounter;
+    this.notes.forEach(note => {
+      if (typeof note.pinned !== 'boolean') note.pinned = false;
+      if (!Number.isInteger(note.z)) {
+        note.z = ++maxZ + (note.pinned ? PIN_Z_BOOST : 0);
+      } else {
+        // Strip the pin boost so fresh unpinned notes stay below pinned ones
+        const base = note.z > PIN_Z_BOOST ? note.z - PIN_Z_BOOST : note.z;
+        maxZ = Math.max(maxZ, base);
+      }
+    });
+    this.zIndexCounter = maxZ;
   }
 
-  _saveDeleted() {
-    if (typeof chrome !== 'undefined' && chrome.storage) {
-      chrome.storage.local.set({ [DELETED_NOTES_KEY]: this.deletedNotes });
-    } else {
-      localStorage.setItem(DELETED_NOTES_KEY, JSON.stringify(this.deletedNotes));
-    }
+  _persist(key, field) {
+    const snapshot = clone(this[field]);
+    const base = clone(this._baselines[key] || []);
+    this._baselines[key] = clone(snapshot);
+    this._writeQueue = this._writeQueue.then(async () => {
+      if (typeof chrome !== 'undefined' && chrome.storage) {
+        const saved = await update(key, base, snapshot);
+        this[field] = merge(snapshot, this[field], saved);
+        this._baselines[key] = merge(snapshot, this._baselines[key], saved);
+      } else {
+        localStorage.setItem(key, JSON.stringify(snapshot));
+      }
+      return true;
+    }).catch(error => {
+      this._baselines[key] = base;
+      console.error('Note save failed:', error);
+      toast('Notes not saved. Check available storage and try again.', 'error');
+      return false;
+    });
+    return this._writeQueue;
+  }
+
+  _saveNotes() { return this._persist(STICKY_NOTES_KEY, 'notes'); }
+
+  _saveDeleted() { return this._persist(DELETED_NOTES_KEY, 'deletedNotes'); }
+
+  async flush() {
+    this._flushPendingSaves();
+    return this._writeQueue;
   }
 
   _purgeExpiredDeleted() {
@@ -93,6 +149,8 @@ export class StickyNotesManager {
       position: { x: position.x, y: position.y },
       size: { w: DEFAULT_W, h: DEFAULT_H },
       color: 'yellow',
+      pinned: false,
+      z: ++this.zIndexCounter,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
@@ -120,6 +178,7 @@ export class StickyNotesManager {
   delete(id) {
     const idx = this.notes.findIndex(n => n.id === id);
     if (idx === -1) return null;
+    this._flushContentSave(id);
     const [removed] = this.notes.splice(idx, 1);
     this.deletedNotes.push({ note: removed, deletedAt: Date.now() });
     this._saveNotes();
@@ -183,7 +242,7 @@ export class StickyNotesManager {
     this.deletedNotes = [];
     this._saveDeleted();
     this._renderDeletedSettings();
-    toast('Deleted notes cleared', 'info');
+    toast('Trash emptied', 'info');
   }
 
   clearAll() {
@@ -209,26 +268,43 @@ export class StickyNotesManager {
     this._renderDeletedSettings();
   }
 
+  togglePin(id) {
+    const note = this.notes.find(n => n.id === id);
+    if (!note) return;
+    note.pinned = !note.pinned;
+    note.updatedAt = Date.now();
+    // Re-seat z so pinned notes stay above unpinned ones
+    this.zIndexCounter++;
+    note.z = note.pinned ? this.zIndexCounter + PIN_Z_BOOST : this.zIndexCounter;
+    this._saveNotes();
+    this._renderAll();
+    toast(note.pinned ? 'Pinned' : 'Unpinned', 'info');
+  }
+
   // ─── Rendering ────────────────────────────────
 
   _renderAll() {
+    this._flushPendingSaves();
     const layer = document.getElementById('sticky-notes-layer');
     if (!layer) return;
     layer.innerHTML = '';
-    this.notes.forEach(note => {
-      layer.appendChild(this._createNoteElement(note));
-    });
+    [...this.notes]
+      .sort((a, b) => (a.z || 0) - (b.z || 0))
+      .forEach(note => {
+        layer.appendChild(this._createNoteElement(note));
+      });
     this._applySearchFilter();
   }
 
   _createNoteElement(note) {
     const el = document.createElement('div');
-    el.className = `sticky-note ${note.color}`;
+    el.className = `sticky-note ${note.color}${note.pinned ? ' pinned' : ''}`;
     el.dataset.id = note.id;
     el.style.left = note.position.x + 'px';
     el.style.top = note.position.y + 'px';
     el.style.width = note.size.w + 'px';
     el.style.height = note.size.h + 'px';
+    el.style.zIndex = note.z || 5;
 
     const header = document.createElement('div');
     header.className = 'sticky-note-header';
@@ -248,7 +324,7 @@ export class StickyNotesManager {
       this._toggleColorPicker(note.id, colorBtn);
     });
     header.appendChild(colorBtn);
-    if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [colorBtn] });
+    if (typeof lucide !== 'undefined') lucide.createIcons({ root: colorBtn });
 
     const closeBtn = document.createElement('button');
     closeBtn.className = 'sticky-note-close';
@@ -260,6 +336,18 @@ export class StickyNotesManager {
       this.delete(note.id);
     });
     header.appendChild(closeBtn);
+
+    const pinBtn = document.createElement('button');
+    pinBtn.className = `sticky-note-pin${note.pinned ? ' active' : ''}`;
+    pinBtn.title = note.pinned ? 'Unpin note' : 'Pin on top';
+    pinBtn.innerHTML = '<i data-lucide="pin"></i>';
+    pinBtn.addEventListener('mousedown', e => e.stopPropagation());
+    pinBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      this.togglePin(note.id);
+    });
+    header.appendChild(pinBtn);
+    if (typeof lucide !== 'undefined') lucide.createIcons({ root: pinBtn });
 
     el.appendChild(header);
 
@@ -402,7 +490,13 @@ export class StickyNotesManager {
   _bumpZIndex(id, el) {
     this._focusedId = id;
     this.zIndexCounter++;
-    el.style.zIndex = this.zIndexCounter;
+    const note = this.notes.find(n => n.id === id);
+    const z = note?.pinned ? this.zIndexCounter + PIN_Z_BOOST : this.zIndexCounter;
+    if (note) {
+      note.z = z;
+      this._saveNotes();
+    }
+    el.style.zIndex = z;
     document.querySelectorAll('.sticky-note.focused').forEach(e => e.classList.remove('focused'));
     el.classList.add('focused');
   }
@@ -427,6 +521,7 @@ export class StickyNotesManager {
     }
     document.querySelectorAll('.sticky-note.focused').forEach(e => e.classList.remove('focused'));
     this._focusedId = null;
+    this._renderAll();
   }
 
   isNoteFocused() {
@@ -475,8 +570,10 @@ export class StickyNotesManager {
       if (moved) {
         const layerRect = document.getElementById('sticky-notes-layer').getBoundingClientRect();
         const elRect = el.getBoundingClientRect();
-        const rawX = Math.max(0, elRect.left - layerRect.left);
-        const rawY = Math.max(0, elRect.top - layerRect.top);
+        const maxX = Math.max(0, layerRect.width - elRect.width);
+        const maxY = Math.max(0, layerRect.height - elRect.height);
+        const rawX = Math.min(maxX, Math.max(0, elRect.left - layerRect.left));
+        const rawY = Math.min(maxY, Math.max(0, elRect.top - layerRect.top));
         el.style.transform = '';
         el.style.left = rawX + 'px';
         el.style.top = rawY + 'px';
@@ -568,7 +665,6 @@ export class StickyNotesManager {
       const row = document.createElement('div');
       row.className = 'deleted-note-row';
       const note = entry.note;
-      const age = Math.round((Date.now() - entry.deletedAt) / 60000);
 
       const dot = document.createElement('span');
       dot.className = `deleted-note-color ${note.color}`;
@@ -579,7 +675,7 @@ export class StickyNotesManager {
 
       const timeSpan = document.createElement('span');
       timeSpan.className = 'deleted-note-time';
-      timeSpan.textContent = `${age} min ago`;
+      timeSpan.textContent = this._formatDeletedAge(entry.deletedAt);
 
       const restoreBtn = document.createElement('button');
       restoreBtn.className = 'deleted-note-restore';
@@ -602,6 +698,16 @@ export class StickyNotesManager {
   }
 
   // ─── Global events ────────────────────────────
+  /** @private */
+  _formatDeletedAge(deletedAt) {
+    const mins = Math.max(0, Math.round((Date.now() - deletedAt) / 60000));
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins} min ago`;
+    const hours = Math.round(mins / 60);
+    if (hours < 24) return hours === 1 ? '1 hr ago' : `${hours} hr ago`;
+    const days = Math.round(hours / 24);
+    return days === 1 ? '1 day ago' : `${days} days ago`;
+  }
 
   _wireGlobalEvents() {
     const searchInput = document.getElementById('sticky-notes-search');
@@ -621,5 +727,8 @@ export class StickyNotesManager {
     });
 
     window.addEventListener('pagehide', () => this._flushPendingSaves());
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') this._flushPendingSaves();
+    });
   }
 }

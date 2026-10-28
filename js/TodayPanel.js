@@ -74,7 +74,12 @@ export class TodayPanel {
 
   _renderWeather() {
     const snap = this.weather?.getSnapshot?.() || {};
-    this._setText('today-weather-icon', snap.icon || '🌡️');
+    const iconEl = document.getElementById('today-weather-icon');
+    if (iconEl && snap.iconLucide) {
+      this._setIcon(iconEl, snap.iconLucide, snap.description || 'Weather');
+    } else {
+      this._setText('today-weather-icon', snap.icon || '🌡️');
+    }
     this._setText('today-weather-temp', snap.temperature || '--°');
     this._setText('today-weather-desc', snap.description || 'Loading...');
     this._setText('today-weather-location', snap.location || '');
@@ -112,6 +117,22 @@ export class TodayPanel {
     const activeModePlaying = snap.mode === 'ambient'
       ? Boolean(snap.ambientPlaying)
       : Boolean(snap.musicPlaying);
+
+    const isAmbient = snap.mode === 'ambient';
+    const empty = (isAmbient ? (snap.ambientSounds || []) : (snap.tracks || [])).length === 0;
+    this.audioSection?.classList.toggle('is-empty', empty);
+    document.getElementById('today-audio-empty-state')?.classList.toggle('hidden', !empty);
+    this._setText('today-audio-empty-description', isAmbient ? 'Bring a little calm into your day.' : 'A soundtrack for your space.');
+    const setup = document.getElementById('today-audio-setup');
+    if (setup) setup.classList.toggle('hidden', isAmbient);
+    for (const id of ['today-audio-toggle', 'today-audio-prev', 'today-audio-next', 'today-audio-volume', 'today-audio-progress']) {
+      const control = document.getElementById(id);
+      if (control) control.disabled = empty;
+    }
+    if ((snap.tracks || []).length < 2) {
+      document.getElementById('today-audio-prev').disabled = true;
+      document.getElementById('today-audio-next').disabled = true;
+    }
 
     this._setText('today-audio-mode', modeLabel);
     this._setText('today-audio-title', title);
@@ -152,6 +173,9 @@ export class TodayPanel {
       progress.value = snap.mode === 'ambient' ? 0 : (snap.musicProgress ?? 0);
       progress.classList.toggle('hidden', snap.mode === 'ambient');
     }
+    for (const slider of [volume, progress]) {
+      if (slider) slider.style.setProperty('--range-progress', `${slider.value}%`);
+    }
 
     this._renderAudioList(snap);
     this.panel.classList.toggle('today-audio-playing', activeModePlaying);
@@ -166,6 +190,12 @@ export class TodayPanel {
 
     if (key === this._lastAudioListKey) return;
     this._lastAudioListKey = key;
+    // Do not replace a live ambient slider while it is being dragged.
+    if (this.audioList.contains(document.activeElement)
+        && document.activeElement.matches('input[type="range"]')) {
+      this._lastAudioListKey = '';
+      return;
+    }
     this.audioList.innerHTML = '';
     this.audioList.dataset.mode = snap.mode || 'music';
 
@@ -187,6 +217,7 @@ export class TodayPanel {
         toggle.className = 'today-ambient-toggle';
         toggle.dataset.soundId = sound.id;
         toggle.title = sound.active ? `Stop ${sound.name}` : `Play ${sound.name}`;
+        toggle.setAttribute('aria-label', toggle.title);
         toggle.innerHTML = `<i data-lucide="${sound.icon || 'waves'}"></i>`;
 
         const name = document.createElement('span');
@@ -201,6 +232,8 @@ export class TodayPanel {
         volume.className = 'today-ambient-volume';
         volume.dataset.soundId = sound.id;
         volume.title = `${sound.name} volume`;
+        volume.setAttribute('aria-label', volume.title);
+        volume.style.setProperty('--range-progress', `${sound.volume}%`);
 
         row.appendChild(toggle);
         row.appendChild(name);
@@ -249,6 +282,29 @@ export class TodayPanel {
 
   _wireEvents() {
     this.panel.addEventListener('pointerdown', e => e.stopPropagation());
+    document.getElementById('today-audio-expand')?.addEventListener('click', e => {
+      const expanded = this.panel.classList.toggle('audio-expanded');
+      e.currentTarget.setAttribute('aria-expanded', String(expanded));
+      e.currentTarget.setAttribute('aria-label', expanded ? 'Hide audio controls' : 'Show audio controls');
+    });
+    document.getElementById('today-audio-setup')?.addEventListener('click', e => {
+      e.stopPropagation();
+      window.dispatchEvent(new CustomEvent('canopy:open-audio-settings'));
+    });
+    document.getElementById('today-audio-sync')?.addEventListener('click', async e => {
+      e.stopPropagation();
+      const button = e.currentTarget;
+      const ambient = this.audio?.getSnapshot?.().mode === 'ambient';
+      button.disabled = true;
+      button.setAttribute('aria-busy', 'true');
+      try {
+        if (ambient) await this.audio?.syncAmbientFromR2?.();
+        else await this.audio?.syncMusicFromR2?.();
+      } finally {
+        button.disabled = false;
+        button.removeAttribute('aria-busy');
+      }
+    });
 
     window.addEventListener('canopy:clock-update', () => this.render());
     window.addEventListener('canopy:weather-update', () => this.render());
@@ -401,7 +457,10 @@ export class TodayPanel {
 
   _setIcon(el, icon, title = '') {
     if (!el) return;
-    if (title) el.title = title;
+    if (title) {
+      el.title = title;
+      if (el.tagName === 'BUTTON') el.setAttribute('aria-label', title);
+    }
     if (el.dataset.todayIcon === icon && !el.querySelector('i[data-lucide]')) return;
     el.dataset.todayIcon = icon;
     el.innerHTML = `<i data-lucide="${icon}"></i>`;
@@ -410,7 +469,7 @@ export class TodayPanel {
 
   _hydrateIcons(node) {
     if (typeof lucide !== 'undefined' && node) {
-      lucide.createIcons({ nodes: [node] });
+      lucide.createIcons({ root: node });
     }
   }
 }

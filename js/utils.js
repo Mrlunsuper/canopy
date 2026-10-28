@@ -108,10 +108,13 @@ export function snapToGrid(x, y) {
  * @param {'info'|'success'|'error'} type
  */
 export function toast(msg, type = 'info') {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+  while (container.children.length >= 4) container.firstChild.remove();
   const el = document.createElement('div');
   el.className = `toast ${type}`;
   el.textContent = msg;
-  document.getElementById('toast-container').appendChild(el);
+  container.appendChild(el);
   setTimeout(() => el.remove(), 3200);
 }
 

@@ -76,6 +76,19 @@
             <button id="today-pomodoro-reset" title="Reset timer"><i data-lucide="rotate-ccw"></i></button>
           </div>
         </section>
+        <details class="today-focus" aria-label="Focus session">
+          <summary><i data-lucide="crosshair" class="focus-session-icon" aria-hidden="true"></i><span>Focus session</span><i data-lucide="chevron-down" class="focus-session-chevron" aria-hidden="true"></i></summary>
+          <div class="today-focus-content">
+          <label for="focus-task">One thing at a time</label>
+          <input id="focus-task" type="text" maxlength="160" placeholder="What are you working on?" />
+          <label class="focus-ambient-option"><input id="focus-ambient" type="checkbox" /> Play ambient with this session</label>
+          <select id="focus-sound" aria-label="Focus ambient sound"></select>
+          <div class="focus-session-actions">
+            <button id="focus-start" type="button" class="btn-secondary">Start focus</button>
+            <span id="focus-status" role="status"></span>
+          </div>
+          </div>
+        </details>
         <section class="today-module today-audio" data-today-section="audio">
           <div class="today-module-main">
             <span id="today-audio-icon"><i data-lucide="music"></i></span>
@@ -94,8 +107,16 @@
             <button id="today-audio-prev" title="Previous track"><i data-lucide="chevron-left"></i></button>
             <button id="today-audio-toggle" title="Play"><i data-lucide="play"></i></button>
             <button id="today-audio-next" title="Next track"><i data-lucide="chevron-right"></i></button>
+            <button id="today-audio-expand" type="button" aria-expanded="false" aria-controls="today-audio-list" aria-label="Show audio controls" title="More audio controls"><i data-lucide="sliders-horizontal"></i></button>
           </div>
           <div id="today-audio-list" class="today-audio-list"></div>
+          <div id="today-audio-empty-state" class="today-audio-onboarding hidden">
+            <p id="today-audio-empty-description">A soundtrack for your space.</p>
+            <div class="today-audio-empty-actions">
+              <button id="today-audio-setup" class="btn-secondary" type="button"><i data-lucide="plus"></i> Add music</button>
+              <button id="today-audio-sync" class="btn-secondary" type="button"><i data-lucide="refresh-cw"></i> Sync library</button>
+            </div>
+          </div>
         </section>
       </div>
     </div>
@@ -109,19 +130,22 @@
           <button class="audio-mode-btn" data-audio-mode="ambient" type="button" aria-pressed="false"><i data-lucide="waves"></i> Ambient</button>
         </div>
         <div id="audio-panel-music" class="audio-panel">
-          <div class="widget-header">
-            <span id="music-track-label">Music</span>
+          <div class="audio-track-row">
+            <span id="music-track-label" title="Show track list">Music</span>
+            <span id="music-time">--:-- / --:--</span>
+            <button id="music-list-toggle" title="Track list"><i data-lucide="list-music"></i></button>
           </div>
-          <div class="widget-controls">
-            <button id="music-shuffle" title="Shuffle off"><i data-lucide="shuffle"></i></button>
+          <div class="audio-main-row">
             <button id="music-prev" title="Previous track"><i data-lucide="chevron-left"></i></button>
             <button id="music-toggle" title="Play"><i data-lucide="play"></i></button>
             <button id="music-next" title="Next track"><i data-lucide="chevron-right"></i></button>
-            <button id="music-repeat" title="Repeat off"><i data-lucide="repeat"></i></button>
+            <button id="music-more" title="More controls"><i data-lucide="ellipsis"></i></button>
           </div>
-          <div class="widget-meta">
-            <span id="music-time">--:-- / --:--</span>
-            <input type="range" id="music-volume" min="0" max="100" value="75" />
+          <div id="music-extra" class="audio-extra">
+            <button id="music-shuffle" title="Shuffle off"><i data-lucide="shuffle"></i></button>
+            <button id="music-repeat" title="Repeat off"><i data-lucide="repeat"></i></button>
+            <button id="music-sleep" title="Sleep timer off"><i data-lucide="moon-star"></i></button>
+            <span class="audio-vol-wrap"><i data-lucide="volume-2"></i><input type="range" id="music-volume" min="0" max="100" value="75" title="Volume" /></span>
           </div>
           <div id="music-progress">
             <div id="music-progress-fill"></div>
@@ -129,18 +153,18 @@
           <div id="music-card-list" aria-label="Music tracks"></div>
         </div>
         <div id="audio-panel-ambient" class="audio-panel hidden">
-          <div class="widget-header">
+          <div class="audio-track-row">
             <span id="ambient-icon"><i data-lucide="waves"></i></span>
             <span id="ambient-label">Ambient</span>
             <span id="ambient-count" title="Active sounds">0</span>
+            <span id="ambient-status">Sync sounds</span>
           </div>
-          <div class="widget-controls">
+          <div class="audio-main-row">
             <button id="ambient-toggle" title="Play ambient sounds"><i data-lucide="play"></i></button>
             <button id="ambient-expand" title="Show mixer"><i data-lucide="sliders-horizontal"></i></button>
           </div>
-          <div class="widget-meta">
-            <span id="ambient-status">Sync sounds</span>
-            <input type="range" id="ambient-master-volume" min="0" max="100" value="70" title="Master volume" />
+          <div class="audio-extra ambient-extra">
+            <span class="audio-vol-wrap"><i data-lucide="volume-2"></i><input type="range" id="ambient-master-volume" min="0" max="100" value="70" title="Master volume" /></span>
           </div>
           <div id="ambient-sound-list"></div>
         </div>
@@ -172,8 +196,8 @@
         <div class="widget-header">
           <div id="pomodoro-ring-wrap">
             <svg id="pomodoro-progress-ring" viewBox="0 0 40 40" width="32" height="32">
-              <circle cx="20" cy="20" r="18" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3"/>
-              <circle id="pomodoro-progress-circle" cx="20" cy="20" r="18" fill="none" stroke="var(--accent)" stroke-width="3"
+              <circle cx="20" cy="20" r="18" fill="none" stroke="rgba(24,26,22,0.08)" stroke-width="3"/>
+              <circle id="pomodoro-progress-circle" cx="20" cy="20" r="18" fill="none" stroke="var(--terra)" stroke-width="3"
                 stroke-linecap="round" transform="rotate(-90 20 20)"
                 stroke-dasharray="113.1" stroke-dashoffset="113.1"/>
             </svg>
@@ -191,7 +215,18 @@
       </div>
     </div>
 
-    <div id="desktop-grid" tabindex="0"></div>
+    <div id="desktop-grid" tabindex="0" aria-label="Desktop shortcuts"></div>
+    <section id="desktop-empty" class="desktop-empty hidden" aria-labelledby="desktop-empty-title">
+      <span class="desktop-empty-mark" aria-hidden="true"><i data-lucide="sprout"></i></span>
+      <p class="desktop-empty-eyebrow">A little room to grow</p>
+      <h1 id="desktop-empty-title">Make yourself at home.</h1>
+      <p class="desktop-empty-description">Keep your favorite places close.<br />Start with a shortcut, or bring your bookmarks along.</p>
+      <div class="desktop-empty-actions">
+        <button id="empty-add-shortcut" class="btn-primary" type="button"><i data-lucide="plus"></i> Add a shortcut</button>
+        <button id="empty-import-bookmarks" class="btn-secondary" type="button"><i data-lucide="bookmark-plus"></i> Import bookmarks</button>
+      </div>
+      <p class="desktop-empty-hint">Right-click anywhere for more options.</p>
+    </section>
 
     <!-- Sticky Notes -->
     <div id="sticky-notes-layer"></div>
@@ -282,14 +317,15 @@
   <div id="settings-panel" class="hidden">
     <div id="settings-header">
       <div id="settings-title">
-        <h2><i data-lucide="settings"></i> Settings</h2>
-        <p>Customize your Canopy desktop</p>
+        <span class="settings-eyebrow">CANOPY / PREFERENCES</span>
+        <h2>Settings</h2>
+        <p>Your desktop, your way.</p>
       </div>
       <button id="settings-close" aria-label="Close settings"><i data-lucide="x"></i></button>
     </div>
     <div id="settings-body">
-      <nav id="settings-sidebar">
-        <input type="text" id="settings-search" placeholder="Search settings..." autocomplete="off" />
+      <nav id="settings-sidebar" aria-label="Settings categories">
+        <input type="search" id="settings-search" aria-label="Search settings categories" placeholder="Find a setting" autocomplete="off" />
         <button class="settings-nav-item active" data-section="appearance">
           <i data-lucide="image"></i> Appearance
         </button>
@@ -309,7 +345,7 @@
           <i data-lucide="cloud-sun"></i> Weather
         </button>
         <button class="settings-nav-item" data-section="notes">
-          <i data-lucide="trash-2"></i> Notes
+          <i data-lucide="sticky-note"></i> Notes
         </button>
         <button class="settings-nav-item" data-section="about">
           <i data-lucide="info"></i> About
@@ -317,11 +353,20 @@
       </nav>
       <div id="settings-content">
         <div id="settings-appearance" class="settings-content-panel active">
+          <header class="settings-page-heading"><span class="settings-eyebrow">01 / YOUR SPACE</span><h2>Appearance</h2><p>Set the light, choose a backdrop, make room.</p></header>
           <section class="settings-section">
             <h3><i data-lucide="monitor"></i> Desktop</h3>
             <button id="desktop-icons-toggle" class="settings-btn desktop-visibility-toggle active" type="button" aria-pressed="true">
               <i data-lucide="eye"></i> Show desktop icons
             </button>
+            <div class="weather-setting-row">
+              <label>Clock format</label>
+              <button id="clock-format-toggle" class="settings-btn compact" type="button">24h</button>
+            </div>
+            <div class="weather-setting-row">
+              <label>Clock position</label>
+              <button id="clock-reset-view" class="settings-btn compact" type="button">Reset position</button>
+            </div>
           </section>
           <section class="settings-section">
             <h3><i data-lucide="moon"></i> Theme</h3>
@@ -365,16 +410,19 @@
         </div>
 
         <div id="settings-data" class="settings-content-panel">
+          <header class="settings-page-heading"><span class="settings-eyebrow">02 / KEEP A COPY</span><h2>Data & backups</h2><p>Your desktop, ready to take with you.</p></header>
           <section class="settings-section">
             <h3><i data-lucide="database"></i> Data</h3>
             <button id="btn-export-data" class="settings-btn"><i data-lucide="download"></i> Export JSON data</button>
             <label for="import-data-file" class="settings-btn"><i data-lucide="upload"></i> Import JSON data</label>
             <input type="file" id="import-data-file" accept=".json" />
-            <button id="btn-reset-data" class="settings-btn danger"><i data-lucide="trash-2"></i> Reset all data</button>
+            <button id="btn-restore-last-backup" class="settings-btn" type="button"><i data-lucide="undo-2"></i> Restore last desktop backup</button>
+            <div class="settings-danger-zone"><h4>Start over</h4><p class="settings-info">Reset your desktop and saved preferences. Export a backup first.</p><button id="btn-reset-data" class="settings-btn danger"><i data-lucide="trash-2"></i> Reset all data</button></div>
           </section>
         </div>
 
         <div id="settings-widgets" class="settings-content-panel">
+          <header class="settings-page-heading"><span class="settings-eyebrow">03 / THE EVERYDAY</span><h2>Widgets</h2><p>Keep what helps. Leave the rest out.</p></header>
           <section class="settings-section">
             <h3><i data-lucide="layout-dashboard"></i> Widgets</h3>
             <div id="widget-visibility-settings">
@@ -409,6 +457,7 @@
         </div>
 
         <div id="settings-audio" class="settings-content-panel">
+          <header class="settings-page-heading"><span class="settings-eyebrow">04 / IN THE BACKGROUND</span><h2>Sound & music</h2><p>A soundtrack for work, or a little quiet company.</p></header>
           <section class="settings-section">
             <h3><i data-lucide="music"></i> Music Library</h3>
             <div id="music-r2-config">
@@ -435,6 +484,7 @@
         </div>
 
         <div id="settings-timer" class="settings-content-panel">
+          <header class="settings-page-heading"><span class="settings-eyebrow">05 / FIND YOUR RHYTHM</span><h2>Focus & breaks</h2><p>Time to settle in. Time to step away.</p></header>
           <section class="settings-section">
             <h3><i data-lucide="timer"></i> Pomodoro Timer</h3>
             <div id="pomodoro-settings">
@@ -459,12 +509,26 @@
                   <span class="pomodoro-unit">min</span>
                 </div>
               </div>
+              <div class="pomodoro-setting-row">
+                <label for="pomodoro-cycles">Sessions before long break</label>
+                <div class="pomodoro-input-group">
+                  <input type="number" id="pomodoro-cycles" min="1" max="12" value="4" />
+                  <span class="pomodoro-unit">sessions</span>
+                </div>
+              </div>
+              <div class="pomodoro-setting-row">
+                <label for="pomodoro-autostart">Auto-start next phase</label>
+                <div class="pomodoro-input-group">
+                  <input type="checkbox" id="pomodoro-autostart" />
+                </div>
+              </div>
             </div>
             <button id="pomodoro-reset-sessions" class="settings-btn"><i data-lucide="rotate-ccw"></i> Reset session count</button>
           </section>
         </div>
 
         <div id="settings-weather" class="settings-content-panel">
+          <header class="settings-page-heading"><span class="settings-eyebrow">06 / OUTSIDE YOUR WINDOW</span><h2>Weather</h2><p>A small connection to the world outside.</p></header>
           <section class="settings-section">
             <h3><i data-lucide="cloud-sun"></i> Weather</h3>
             <div id="weather-settings">
@@ -475,6 +539,7 @@
                   <button id="weather-city-search" class="settings-btn compact"><i data-lucide="search"></i></button>
                 </div>
               </div>
+              <div id="weather-city-list" class="weather-city-list"></div>
               <div class="weather-setting-row">
                 <label>Temperature unit</label>
                 <button id="weather-unit-toggle" class="settings-btn compact">°C</button>
@@ -484,6 +549,7 @@
         </div>
 
         <div id="settings-notes" class="settings-content-panel">
+          <header class="settings-page-heading"><span class="settings-eyebrow">07 / ON YOUR MIND</span><h2>Notes</h2><p>Find a thought, or bring one back.</p></header>
           <section class="settings-section">
             <h3><i data-lucide="search"></i> Search Notes</h3>
             <input type="text" id="sticky-notes-search" placeholder="Filter notes and deleted notes..." autocomplete="off" />
@@ -495,6 +561,7 @@
         </div>
 
         <div id="settings-about" class="settings-content-panel">
+          <header class="settings-page-heading"><span class="settings-eyebrow">08 / A LITTLE CONTEXT</span><h2>Canopy</h2><p>A quieter corner of your browser.</p></header>
           <section class="settings-section">
             <h3><i data-lucide="info"></i> About Canopy</h3>
             <p class="settings-info">Version 2.0.0</p>

@@ -97,39 +97,44 @@ export class ModalManager {
   /**
    * Save a shortcut from the modal form.
    */
-  saveShortcut() {
+  async saveShortcut() {
     const url   = document.getElementById('sc-url').value.trim();
     const title = document.getElementById('sc-name').value.trim();
     const icon  = document.getElementById('sc-icon').value.trim();
 
-    if (!url) { toast('Please enter URL', 'error'); return; }
+    if (!url) { toast('Enter a URL', 'error'); return; }
 
     const finalUrl = normalizeShortcutUrl(url);
-    if (!finalUrl) { toast('Please enter a valid http(s) URL', 'error'); return; }
+    if (!finalUrl) { toast('That URL is not valid', 'error'); return; }
 
     const finalIcon = icon ? normalizeImageUrl(icon) : null;
-    if (icon && !finalIcon) { toast('Icon must be a valid image, http(s), or data URL', 'error'); return; }
+    if (icon && !finalIcon) { toast('That icon URL is not valid', 'error'); return; }
 
     const finalTitle = title || new URL(finalUrl).hostname.replace('www.', '');
 
     if (this.editingItemId) {
+      const dup = this.storage.findItemByUrl?.(finalUrl, this.editingItemId);
+      if (dup) { toast(`Already on desktop as "${dup.title}"`, 'error'); return; }
       const item = this.storage.findItem(this.editingItemId);
       if (item) {
         item.url   = finalUrl;
         item.title = finalTitle;
         item.icon  = finalIcon;
       }
-      this.storage.saveData();
+      if (!(await this.storage.saveData())) return;
       this.renderer.render();
-      toast('Shortcut updated ✓', 'success');
+      toast('Shortcut updated', 'success');
     } else {
+      const dup = this.storage.findItemByUrl?.(finalUrl, null);
+      if (dup) { toast(`Already on desktop as "${dup.title}"`, 'error'); return; }
       this.renderer.addShortcut({
         url:      finalUrl,
         title:    finalTitle,
         icon:     finalIcon,
         position: this.pendingPosition,
       });
-      toast('Shortcut added ✓', 'success');
+      if (!(await this.storage.flush())) return;
+      toast('Shortcut added', 'success');
     }
 
     this.closeModal('shortcut-modal');
@@ -157,20 +162,23 @@ export class ModalManager {
   /**
    * Save a shortcut directly into a folder.
    */
-  saveShortcutToFolder() {
+  async saveShortcutToFolder() {
     const url   = document.getElementById('sc-url').value.trim();
     const title = document.getElementById('sc-name').value.trim();
     const icon  = document.getElementById('sc-icon').value.trim();
 
-    if (!url) { toast('Please enter URL', 'error'); return; }
+    if (!url) { toast('Enter a URL', 'error'); return; }
 
     const finalUrl = normalizeShortcutUrl(url);
-    if (!finalUrl) { toast('Please enter a valid http(s) URL', 'error'); return; }
+    if (!finalUrl) { toast('That URL is not valid', 'error'); return; }
 
     const finalIcon = icon ? normalizeImageUrl(icon) : null;
-    if (icon && !finalIcon) { toast('Icon must be a valid image, http(s), or data URL', 'error'); return; }
+    if (icon && !finalIcon) { toast('That icon URL is not valid', 'error'); return; }
 
     const finalTitle = title || new URL(finalUrl).hostname.replace('www.', '');
+
+    const dup = this.storage.findItemByUrl?.(finalUrl, null);
+    if (dup) { toast(`Already on desktop as "${dup.title}"`, 'error'); return; }
 
     const folder = this.storage.findItem(this.editingFolderId);
     if (folder) {
@@ -183,9 +191,9 @@ export class ModalManager {
         icon:     finalIcon,
         children: [],
       });
-      this.storage.saveData();
+      if (!(await this.storage.saveData())) return;
       this.renderer.render();
-      toast('Added to folder ✓', 'success');
+      toast('Added to folder', 'success');
       this.closeModal('shortcut-modal');
       setTimeout(() => this.openFolderOverlay(folder), 100);
     }
@@ -220,7 +228,7 @@ export class ModalManager {
   /**
    * Save folder from the modal form.
    */
-  saveFolder() {
+  async saveFolder() {
     const name = document.getElementById('folder-name').value.trim() || 'New Folder';
 
     if (this.editingFolderId) {
@@ -229,16 +237,17 @@ export class ModalManager {
         item.title = name;
         item.emoji = this.selectedEmoji;
       }
-      this.storage.saveData();
+      if (!(await this.storage.saveData())) return;
       this.renderer.render();
-      toast('Folder updated ✓', 'success');
+      toast('Folder updated', 'success');
     } else {
       this.renderer.addFolder({
         title:    name,
         emoji:    this.selectedEmoji,
         position: this.pendingPosition,
       });
-      toast('Folder created ✓', 'success');
+      if (!(await this.storage.flush())) return;
+      toast('Folder created', 'success');
     }
 
     this.closeModal('folder-modal-create');

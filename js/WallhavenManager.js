@@ -105,7 +105,7 @@ export class WallhavenManager {
 
   apply(wp) {
     this.wallpaper.set(this._getImageUrl(wp));
-    toast(`Wallpaper set: ${wp.id}`, 'success');
+    toast('Wallpaper updated', 'success');
   }
 
   download(wp) {

@@ -4,6 +4,9 @@
    "Add to Canopy" and writes the page as a shortcut to storage.
    ============================================================ */
 
+importScripts('js/storage-sync.js');
+const { locked, chromeCall } = globalThis.CanopyPersistence;
+
 const STORAGE_KEY = 'desktop_tab_data';
 // Mirrors js/utils.js — service worker can't import ES modules
 const GRID_COL    = 130;
@@ -178,11 +181,18 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   const title = tab?.title || new URL(url).hostname.replace('www.', '');
   const icon  = tab?.favIconUrl || null;
 
-  chrome.storage.local.get([STORAGE_KEY], result => {
+  locked(async () => {
+    const result = await chromeCall('get', [STORAGE_KEY]);
     const data = result[STORAGE_KEY] || { items: [] };
 
-    // Prevent duplicate — skip if same URL already exists at the top level
-    const exists = data.items.some(i => i.url === url);
+    // Prevent duplicate — check desktop + nested folders
+    const exists = (function findUrl(list) {
+      for (const i of list) {
+        if (i.url === url) return true;
+        if (i.children?.length && findUrl(i.children)) return true;
+      }
+      return false;
+    })(data.items || []);
     if (exists) {
       // Notify user the page is already on the desktop
       chrome.action.setBadgeText({ text: '✓', tabId: tab.id });
@@ -217,11 +227,14 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     };
 
     data.items.push(item);
-    chrome.storage.local.set({ [STORAGE_KEY]: data }, () => {
-      // Brief badge feedback on the extension icon
-      chrome.action.setBadgeText({ text: '+1', tabId: tab.id });
-      chrome.action.setBadgeBackgroundColor({ color: '#7c6af7', tabId: tab.id });
-      setTimeout(() => chrome.action.setBadgeText({ text: '', tabId: tab.id }), 2000);
-    });
+    await chromeCall('set', { [STORAGE_KEY]: data });
+    // Brief badge feedback only after persistence succeeds.
+    chrome.action.setBadgeText({ text: '+1', tabId: tab.id });
+    chrome.action.setBadgeBackgroundColor({ color: '#7c6af7', tabId: tab.id });
+    setTimeout(() => chrome.action.setBadgeText({ text: '', tabId: tab.id }), 2000);
+  }).catch(error => {
+    console.error('Add to Canopy failed:', error);
+    chrome.action.setBadgeText({ text: '!', tabId: tab.id });
+    chrome.action.setBadgeBackgroundColor({ color: '#ef4444', tabId: tab.id });
   });
 });

@@ -19,6 +19,7 @@ import {
   DELETED_NOTES_KEY,
   FAVICON_CACHE_KEY,
 } from './utils.js';
+import { validateBackup } from './BackupValidator.js';
 import { StorageManager }     from './StorageManager.js';
 import { FaviconCache }       from './FaviconCache.js';
 import { WallpaperManager }   from './WallpaperManager.js';
@@ -35,12 +36,14 @@ import { PomodoroTimer }      from './PomodoroTimer.js';
 import { StickyNotesManager } from './StickyNotesManager.js';
 import { WeatherWidget }      from './WeatherWidget.js';
 import { TodayPanel }         from './TodayPanel.js';
+import { FocusMode }          from './FocusMode.js';
 
 const WIDGET_VISIBILITY_KEY = 'canopy_widget_visibility';
 const WIDGET_LAYOUT_KEY = 'canopy_widget_layout';
 const WIDGET_LAYOUT_DEFAULT = 'today';
 const DESKTOP_ICONS_VISIBLE_KEY = 'canopy_desktop_icons_visible';
 const BACKUP_VERSION = 2;
+const LAST_BACKUP_KEY = 'canopy_last_backup';
 const BACKUP_CHROME_KEYS = [
   STORAGE_KEY,
   WALLPAPER_KEY,
@@ -120,7 +123,7 @@ class CanopyApp {
 
     // ── Widgets ──
     this.clock  = new ClockWidget();
-    this.commandPalette = new CommandPalette(this.wallhaven);
+    this.commandPalette = new CommandPalette(this.wallhaven, this.storage, item => this._openItem(item));
 
     // ── Audio Player ──
     this.audio = new AudioPlayer();
@@ -162,7 +165,7 @@ class CanopyApp {
 
     // Load and apply wallpaper
     const wp = await this.storage.loadWallpaper();
-    if (wp) this.wallpaper.apply(wp);
+    if (typeof wp === 'string') this.wallpaper.apply(wp);
 
     // Render desktop
     this.renderer.render();
@@ -195,6 +198,8 @@ class CanopyApp {
 
     // Init Today / Focus Panel after source widgets have painted
     this.todayPanel.init(this.widgetVisibility);
+    this.focusMode = new FocusMode({ pomodoro: this.pomodoro, audio: this.audio });
+    this.focusMode.init();
     this._applyWidgetLayout(this.widgetLayout, false);
 
     // Initialize drop zone
@@ -210,7 +215,7 @@ class CanopyApp {
     if (typeof chrome !== 'undefined' && chrome.storage) {
       chrome.storage.onChanged.addListener((changes, area) => {
         if (area === 'local' && changes['desktop_tab_data']) {
-          this.storage.data = changes['desktop_tab_data'].newValue;
+          this.storage.acceptExternal(changes[STORAGE_KEY].newValue);
           this.renderer.render();
         }
       });
@@ -235,7 +240,7 @@ class CanopyApp {
     } else if (currentItem.url) {
       const safeUrl = normalizeShortcutUrl(currentItem.url);
       if (!safeUrl) {
-        toast('Blocked unsafe shortcut URL', 'error');
+        toast('URL blocked', 'error');
         return;
       }
       window.location.href = safeUrl;
@@ -297,7 +302,7 @@ class CanopyApp {
 
     if (persist) {
       this._saveDesktopIconsVisibility();
-      toast(this.desktopIconsVisible ? 'Desktop icons shown' : 'Desktop icons hidden', 'success');
+      toast(this.desktopIconsVisible ? 'Icons shown' : 'Icons hidden', 'success');
     }
   }
 
@@ -382,7 +387,7 @@ class CanopyApp {
 
     if (persist) {
       this._saveWidgetVisibility();
-      toast('Widget visibility updated', 'success');
+      toast('Widgets updated', 'success');
     }
   }
 
@@ -421,12 +426,16 @@ class CanopyApp {
 
     if (persist) {
       this._saveWidgetLayout();
-      toast(this.widgetLayout === 'today' ? 'Compact layout enabled' : 'Separate layout enabled', 'success');
+      toast(this.widgetLayout === 'today' ? 'Compact layout' : 'Separate layout', 'success');
     }
   }
 
   /** @private */
   async _exportData() {
+    if (!(await this.storage.flush()) || !(await this.stickyNotes.flush())) {
+      toast('Export cancelled: pending changes could not be saved.', 'error');
+      return;
+    }
     const backup = {
       app: 'canopy',
       version: BACKUP_VERSION,
@@ -441,10 +450,33 @@ class CanopyApp {
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href     = url;
-    a.download = 'desktop-tab-backup.json';
+    const datePart = new Date().toISOString().slice(0, 10);
+    a.download = `canopy-${datePart}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    toast('Data exported ✓', 'success');
+    toast('Backup saved', 'success');
+  }
+
+  /** @private */
+  _saveLastBackup() {
+    try {
+      localStorage.setItem(LAST_BACKUP_KEY, JSON.stringify({
+        savedAt: new Date().toISOString(),
+        data: this.storage.data,
+      }));
+    } catch {
+      throw new Error('Safety backup could not be saved. Free storage before continuing.');
+    }
+  }
+
+  /** @private */
+  _countAllItems(list = this.storage.data.items) {
+    let count = 0;
+    for (const item of list) {
+      count += 1;
+      if (item.children?.length) count += this._countAllItems(item.children);
+    }
+    return count;
   }
 
   /** @private */
@@ -454,19 +486,30 @@ class CanopyApp {
     reader.onload = async e => {
       try {
         const parsed = JSON.parse(e.target.result);
+        validateBackup(parsed);
         const imported = this._sanitizeImportedData(parsed);
         if (!imported) {
           toast('Invalid backup file', 'error');
           return;
         }
 
+        const currentCount = this._countAllItems();
+        const incomingCount = this._countAllItems(imported.items || []);
+        const ok = confirm(
+          `Import ${incomingCount} items? This replaces your current ${currentCount} items and, for a full backup, widget settings. Only a desktop safety backup is saved automatically; export a full backup first to keep current widgets.`
+        );
+        if (!ok) return;
+
+        if (!(await this.storage.flush()) || !(await this.stickyNotes.flush())) {
+          throw new Error('Save pending changes successfully before importing.');
+        }
+        this._saveLastBackup();
         await this._restoreImportedData(parsed, imported);
-        this.storage.saveData();
-        this.renderer.render();
-        toast('Data imported ✓', 'success');
+        this.renderer.render(true);
+        toast('Backup restored', 'success');
         setTimeout(() => window.location.reload(), 300);
-      } catch {
-        toast('Invalid JSON file', 'error');
+      } catch (error) {
+        toast(`Import failed: ${error.message}`, 'error');
       } finally {
         const input = document.getElementById('import-data-file');
         if (input) input.value = '';
@@ -477,34 +520,43 @@ class CanopyApp {
 
   /** @private */
   _readChromeStorage(keys) {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       if (typeof chrome === 'undefined' || !chrome.storage) {
         resolve({});
         return;
       }
-      chrome.storage.local.get(keys, result => resolve(result || {}));
+      chrome.storage.local.get(keys, result => {
+        if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+        else resolve(result || {});
+      });
     });
   }
 
   /** @private */
   _writeChromeStorage(values) {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       if (typeof chrome === 'undefined' || !chrome.storage || !values || Object.keys(values).length === 0) {
         resolve();
         return;
       }
-      chrome.storage.local.set(values, () => resolve());
+      chrome.storage.local.set(values, () => {
+        if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+        else resolve();
+      });
     });
   }
 
   /** @private */
   _removeChromeStorage(keys) {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       if (typeof chrome === 'undefined' || !chrome.storage || !keys.length) {
         resolve();
         return;
       }
-      chrome.storage.local.remove(keys, () => resolve());
+      chrome.storage.local.remove(keys, () => {
+        if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+        else resolve();
+      });
     });
   }
 
@@ -529,22 +581,45 @@ class CanopyApp {
       });
       chromeValues[STORAGE_KEY] = desktopData;
       const chromeRemoveKeys = BACKUP_CHROME_KEYS.filter(key => !(key in chromeValues));
-      await this._removeChromeStorage(chromeRemoveKeys);
-      await this._writeChromeStorage(chromeValues);
-
-      BACKUP_LOCAL_KEYS.forEach(key => {
-        if (!(key in (raw.localStorage || {}))) {
-          try { localStorage.removeItem(key); } catch { /* ignore */ }
+      const restore = async () => {
+        const previousChrome = await this._readChromeStorage(BACKUP_CHROME_KEYS);
+        const previousLocal = this._readLocalStorage(BACKUP_LOCAL_KEYS);
+        try {
+          // Write first: a quota failure must not delete existing keys.
+          await this._writeChromeStorage(chromeValues);
+          await this._removeChromeStorage(chromeRemoveKeys);
+          for (const key of BACKUP_LOCAL_KEYS) {
+            if (key in raw.localStorage) localStorage.setItem(key, raw.localStorage[key]);
+            else localStorage.removeItem(key);
+          }
+        } catch (error) {
+          try {
+            await this._removeChromeStorage(BACKUP_CHROME_KEYS.filter(key => !(key in previousChrome)));
+            await this._writeChromeStorage(previousChrome);
+            for (const key of BACKUP_LOCAL_KEYS) {
+              if (key in previousLocal) localStorage.setItem(key, previousLocal[key]);
+              else localStorage.removeItem(key);
+            }
+          } catch (rollbackError) {
+            console.error('Backup rollback failed:', rollbackError);
+            throw new Error('Restore and rollback failed. Keep your backup file and retry.');
+          }
+          throw error;
         }
-      });
-      Object.entries(raw.localStorage || {}).forEach(([key, value]) => {
-        if (!BACKUP_LOCAL_KEYS.includes(key) || typeof value !== 'string') return;
-        try { localStorage.setItem(key, value); } catch { /* ignore */ }
-      });
+      };
+      if (typeof chrome !== 'undefined' && chrome.storage) await globalThis.CanopyPersistence.locked(restore);
+      else await restore();
+    } else {
+      const previous = this.storage.data;
+      this.storage.data = desktopData;
+      if (!(await this.storage.saveData())) {
+        this.storage.data = previous;
+        throw new Error('Desktop data could not be saved');
+      }
     }
 
     this.storage.data = desktopData;
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(desktopData)); } catch { /* ignore */ }
+    this.storage._baseline = globalThis.CanopyPersistence.clone(desktopData);
   }
 
   /** @private */
@@ -621,7 +696,7 @@ class CanopyApp {
   /** @private */
   _sanitizeImportedId(id, seenIds) {
     const candidate = typeof id === 'string' ? id.trim().slice(0, 80) : '';
-    if (candidate && !seenIds.has(candidate)) {
+    if (/^[a-zA-Z0-9_-]{1,80}$/.test(candidate) && !seenIds.has(candidate)) {
       seenIds.add(candidate);
       return candidate;
     }
@@ -652,12 +727,36 @@ class CanopyApp {
   }
 
   /** @private */
-  _resetData() {
-    if (!confirm('Are you sure you want to delete all data? This action cannot be undone.')) return;
-    this.storage.data = { items: [] };
-    this.storage.saveData();
-    this.renderer.render();
-    toast('All data deleted', 'info');
+  async _resetData() {
+    const count = this._countAllItems();
+    if (!confirm(`Delete all ${count} desktop items? Use Restore last desktop backup to undo.`)) return;
+    try {
+      if (!(await this.storage.flush())) throw new Error('Pending changes are not saved');
+      this._saveLastBackup();
+      const previous = this.storage.data;
+      this.storage.data = { items: [] };
+      if (!(await this.storage.saveData())) {
+        this.storage.data = previous;
+        this.renderer.render();
+        return;
+      }
+      this.renderer.render();
+      toast('Desktop cleared. A safety backup is available in Settings.', 'info');
+    } catch (error) { toast(error.message, 'error'); }
+  }
+
+  async _restoreLastBackup() {
+    try {
+      const backup = JSON.parse(localStorage.getItem(LAST_BACKUP_KEY));
+      const data = this._sanitizeImportedData(backup?.data);
+      if (!data) throw new Error('No valid desktop safety backup found');
+      if (!confirm('Restore the last desktop backup? Current desktop items will be replaced.')) return;
+      await this.storage.flush();
+      const previous = this.storage.data;
+      this.storage.data = data;
+      if (!(await this.storage.saveData())) this.storage.data = previous;
+      this.renderer.render(true);
+    } catch (error) { toast(error.message, 'error'); }
   }
 
   /**
@@ -830,6 +929,33 @@ class CanopyApp {
       this.contextMenu.hideArrangeMenu();
     });
 
+    document.getElementById('desktop-empty')?.addEventListener('click', e => e.stopPropagation());
+    document.getElementById('empty-add-shortcut')?.addEventListener('click', () => this.modals.openShortcutModal());
+    document.getElementById('empty-import-bookmarks')?.addEventListener('click', () => this.bookmarks.openImportModal());
+    window.addEventListener('canopy:open-audio-settings', () => {
+      document.getElementById('settings-panel').classList.remove('hidden');
+      this._showSettingsSection('audio');
+      document.querySelector('#music-add-track input')?.focus();
+    });
+
+    // Range progress and accessible names are shared across compact/separate widgets.
+    const paintRange = slider => {
+      const min = Number(slider.min) || 0;
+      const max = Number(slider.max) || 100;
+      const percent = max > min ? Math.max(0, Math.min(100, (Number(slider.value) - min) / (max - min) * 100)) : 0;
+      slider.style.setProperty('--range-progress', `${percent}%`);
+    };
+    document.querySelectorAll('input[type="range"]').forEach(slider => {
+      paintRange(slider);
+      if (slider.title) slider.setAttribute('aria-label', slider.title);
+    });
+    document.querySelectorAll('button[title]').forEach(button => {
+      if (!button.textContent.trim()) button.setAttribute('aria-label', button.title);
+    });
+    document.addEventListener('input', e => {
+      if (e.target.matches('input[type="range"]')) paintRange(e.target);
+    });
+
     // ── Taskbar buttons ──
     document.getElementById('btn-import').addEventListener('click', () => this.bookmarks.openImportModal());
 
@@ -866,9 +992,21 @@ class CanopyApp {
     document.getElementById('wallpaper-upload').addEventListener('change', e => {
       const file = e.target.files[0];
       if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        toast('Choose an image file', 'error');
+        e.target.value = '';
+        return;
+      }
       const reader = new FileReader();
-      reader.onload = ev => {
-        this.wallpaper.set(ev.target.result);
+      reader.onload = async ev => {
+        try {
+          await this.wallpaper.setUpload(ev.target.result);
+          toast('Wallpaper updated', 'success');
+        } catch {
+          toast('Image too large or invalid', 'error');
+        } finally {
+          e.target.value = '';
+        }
       };
       reader.readAsDataURL(file);
     });
@@ -958,9 +1096,12 @@ class CanopyApp {
     this._applyDesktopIconsVisibility(this._loadDesktopIconsVisibility(), false);
 
     // ── Settings data ──
-    document.getElementById('btn-export-data').addEventListener('click', () => this._exportData());
+    document.getElementById('btn-export-data').addEventListener('click', () => {
+      this._exportData().catch(error => toast(`Export failed: ${error.message}`, 'error'));
+    });
     document.getElementById('import-data-file').addEventListener('change', e => this._importDataFromFile(e.target.files[0]));
     document.getElementById('btn-reset-data').addEventListener('click', () => this._resetData());
+    document.getElementById('btn-restore-last-backup').addEventListener('click', () => this._restoreLastBackup());
 
     // ── Keyboard shortcuts ──
     this._wireKeyboardShortcuts();
@@ -968,6 +1109,14 @@ class CanopyApp {
     // ── Settings sidebar navigation ──
     this._initSettingsNavigation();
     this._initSettingsSearch();
+  }
+
+  /** @private */
+  _isModalOpen() {
+    return ['shortcut-modal', 'folder-modal-create', 'import-modal', 'folder-overlay', 'wallhaven-modal', 'wh-preview'].some(id => {
+      const el = document.getElementById(id);
+      return el && !el.classList.contains('hidden');
+    }) || !document.getElementById('settings-panel')?.classList.contains('hidden');
   }
 
   /** @private */
@@ -1033,7 +1182,22 @@ class CanopyApp {
         }
       }
       if (e.key === 'Delete' && this.renderer.selectedIconId) {
+        const tag = document.activeElement?.tagName || '';
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
+        if (document.activeElement?.isContentEditable) return;
+        if (this._isModalOpen() || this.commandPalette.visible) return;
         this.renderer.deleteItem(this.renderer.selectedIconId);
+      }
+      // Ctrl/Cmd+Z: restore last deleted icon
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'z') {
+        const tag = document.activeElement?.tagName || '';
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
+        if (document.activeElement?.isContentEditable) return;
+        if (this._isModalOpen() || this.commandPalette.visible) return;
+        if (this.renderer.restoreLastDeleted()) {
+          e.preventDefault();
+          return;
+        }
       }
       // F2: inline rename selected icon
       if (e.key === 'F2' && this.renderer.selectedIconId) {
@@ -1041,16 +1205,24 @@ class CanopyApp {
         this.renderer.startRename(this.renderer.selectedIconId);
         return;
       }
-      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+      // Alt+N: new shortcut (Ctrl+N is taken by Chrome for new window)
+      if (e.altKey && !e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'n') {
+        const tag = document.activeElement?.tagName || '';
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
+        if (document.activeElement?.isContentEditable) return;
+        if (this._isModalOpen() || this.commandPalette.visible) return;
         e.preventDefault();
         this.modals.openShortcutModal();
+        return;
       }
 
-      // Space: play/pause (when not in input/textarea)
+      // Space: play/pause (when not in input/textarea/button)
       if (e.code === 'Space' && !e.ctrlKey && !e.metaKey && !e.altKey) {
         const tag = document.activeElement?.tagName || '';
-        if (!['INPUT', 'TEXTAREA', 'SELECT'].includes(tag) &&
-            !document.activeElement?.isContentEditable) {
+        if (['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(tag)) return;
+        if (document.activeElement?.isContentEditable) return;
+        if (this._isModalOpen() || this.commandPalette.visible) return;
+        if (!document.activeElement || document.activeElement === document.body) {
           e.preventDefault();
           this.audio.toggleMusic();
         }

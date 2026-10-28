@@ -34,6 +34,39 @@ export class PomodoroTimer {
     this._render();
     this._wireEvents();
     this._wireSettings();
+    window.addEventListener('storage', e => {
+      if (e.key === POMODORO_CONFIG_KEY) this._syncStoredState();
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        this._syncStoredState();
+        this._tick();
+      }
+    });
+  }
+
+  _syncStoredState() {
+    const raw = localStorage.getItem(POMODORO_CONFIG_KEY);
+    if (!raw || raw === this._savedState) return false;
+    if (this._interval) clearInterval(this._interval);
+    this._interval = null;
+    this._running = false;
+    this._endAt = null;
+    this._loadConfig();
+    if (!this._restoreRunningState()) this._setPhaseTime();
+    this._render();
+    return true;
+  }
+
+  startFocus() {
+    this._pause(false);
+    this.config.phase = 'work';
+    this._setPhaseTime();
+    this._start();
+  }
+
+  pause() {
+    this._pause();
   }
 
   // ═══════════════════════════════════════════════
@@ -51,6 +84,7 @@ export class PomodoroTimer {
   reset() {
     this._pause();
     this._setPhaseTime();
+    this._saveConfig();
     this._render();
   }
 
@@ -92,6 +126,8 @@ export class PomodoroTimer {
   }
 
   _tick() {
+    // Read before completing: another tab may already have advanced this phase.
+    if (this._syncStoredState()) return;
     if (!this._running || !this._endAt) return;
     const nextRemaining = Math.max(0, Math.ceil((this._endAt - Date.now()) / 1000));
     if (nextRemaining !== this._remaining) {
@@ -106,6 +142,9 @@ export class PomodoroTimer {
   }
 
   _pause(render = true) {
+    if (this._running && this._endAt) {
+      this._remaining = Math.max(0, Math.ceil((this._endAt - Date.now()) / 1000));
+    }
     this._running = false;
     this._endAt = null;
     if (this._interval) {
@@ -123,19 +162,25 @@ export class PomodoroTimer {
     if (this.config.phase === 'work') {
       this.config.completedSessions++;
       this._saveConfig();
-      toast(`Session #${this.config.completedSessions} complete! Time for a break.`, 'success');
+      toast(`Session ${this.config.completedSessions} done. Take a break.`, 'success');
     } else {
-      toast('Break over! Ready to focus?', 'info');
+      toast('Break over. Back to focus.', 'info');
     }
 
     this._advancePhase();
     this._render();
+
+    // Auto-start next phase when enabled
+    if (this.config.autoStart) {
+      this._start();
+    }
   }
 
   _advancePhase() {
     if (this.config.phase === 'work') {
-      // Every 4 sessions → long break
-      if (this.config.completedSessions > 0 && this.config.completedSessions % 4 === 0) {
+      // Every N sessions → long break (configurable)
+      const cycles = Math.max(1, this.config.cyclesBeforeLong || 4);
+      if (this.config.completedSessions > 0 && this.config.completedSessions % cycles === 0) {
         this.config.phase = 'longBreak';
       } else {
         this.config.phase = 'shortBreak';
@@ -191,16 +236,20 @@ export class PomodoroTimer {
       workMinutes: 25,
       shortBreakMinutes: 5,
       longBreakMinutes: 15,
+      cyclesBeforeLong: 4,
+      autoStart: false,
       completedSessions: 0,
       position: null,
       isRunning: false,
-      endAt: null
+      endAt: null,
+      remaining: null
     };
   }
 
   _loadConfig() {
     try {
       const raw = localStorage.getItem(POMODORO_CONFIG_KEY);
+      this._savedState = raw;
       if (raw) {
         const parsed = JSON.parse(raw);
         this.config = { ...this._defaults(), ...parsed };
@@ -213,14 +262,27 @@ export class PomodoroTimer {
     if (typeof this.config.completedSessions !== 'number') this.config.completedSessions = 0;
     if (typeof this.config.isRunning !== 'boolean') this.config.isRunning = false;
     if (typeof this.config.endAt !== 'number') this.config.endAt = null;
+    if (!Number.isInteger(this.config.cyclesBeforeLong) || this.config.cyclesBeforeLong < 1) {
+      this.config.cyclesBeforeLong = 4;
+    }
+    if (typeof this.config.autoStart !== 'boolean') this.config.autoStart = false;
   }
 
   _restoreRunningState() {
     this._total = this._getPhaseDuration(this.config.phase);
-    if (!this.config.isRunning || !this.config.endAt) return false;
+    if (!this.config.isRunning || !this.config.endAt) {
+      if (Number.isFinite(this.config.remaining) && this.config.remaining >= 0
+          && this.config.remaining <= this._total) {
+        this._remaining = this.config.remaining;
+        return true;
+      }
+      return false;
+    }
 
     const remaining = Math.max(0, Math.ceil((this.config.endAt - Date.now()) / 1000));
     if (remaining <= 0) {
+      this._running = false;
+      this._endAt = null;
       if (this.config.phase === 'work') this.config.completedSessions++;
       this._advancePhase();
       return true;
@@ -235,16 +297,21 @@ export class PomodoroTimer {
 
   _saveConfig() {
     try {
-      localStorage.setItem(POMODORO_CONFIG_KEY, JSON.stringify({
+      const serialized = JSON.stringify({
         phase: this.config.phase,
         workMinutes: this.config.workMinutes,
         shortBreakMinutes: this.config.shortBreakMinutes,
         longBreakMinutes: this.config.longBreakMinutes,
+        cyclesBeforeLong: this.config.cyclesBeforeLong,
+        autoStart: this.config.autoStart,
         completedSessions: this.config.completedSessions,
         position: this.config.position,
         isRunning: this._running,
-        endAt: this._running ? this._endAt : null
-      }));
+        endAt: this._running ? this._endAt : null,
+        remaining: this._remaining
+      });
+      localStorage.setItem(POMODORO_CONFIG_KEY, serialized);
+      this._savedState = serialized;
     } catch {}
   }
 
@@ -307,7 +374,7 @@ export class PomodoroTimer {
 
       // Re-create lucide icons only when the controls actually change
       if (typeof lucide !== 'undefined') {
-        lucide.createIcons({ nodes: [this.toggleBtn, this.resetBtn, this.skipBtn] });
+        lucide.createIcons({ root: this.player });
       }
     }
 
@@ -391,35 +458,55 @@ export class PomodoroTimer {
     const workInput = document.getElementById('pomodoro-work-min');
     const shortInput = document.getElementById('pomodoro-short-min');
     const longInput = document.getElementById('pomodoro-long-min');
+    const cyclesInput = document.getElementById('pomodoro-cycles');
+    const autoStartInput = document.getElementById('pomodoro-autostart');
     const resetSessionsBtn = document.getElementById('pomodoro-reset-sessions');
 
     // Populate settings with current config
     if (workInput) workInput.value = this.config.workMinutes;
     if (shortInput) shortInput.value = this.config.shortBreakMinutes;
     if (longInput) longInput.value = this.config.longBreakMinutes;
+    if (cyclesInput) cyclesInput.value = this.config.cyclesBeforeLong;
+    if (autoStartInput) autoStartInput.checked = this.config.autoStart;
 
     const updateDuration = (key, input) => {
       const val = parseInt(input.value, 10);
       if (isNaN(val) || val < 1) return;
       this.config[key] = val;
-      this._saveConfig();
       // If not running, update remaining time
       if (!this._running) {
         this._setPhaseTime();
         this._render();
       }
+      this._saveConfig();
     };
 
     if (workInput) workInput.addEventListener('change', () => updateDuration('workMinutes', workInput));
     if (shortInput) shortInput.addEventListener('change', () => updateDuration('shortBreakMinutes', shortInput));
     if (longInput) longInput.addEventListener('change', () => updateDuration('longBreakMinutes', longInput));
 
+    if (cyclesInput) cyclesInput.addEventListener('change', () => {
+      const val = parseInt(cyclesInput.value, 10);
+      if (isNaN(val) || val < 1 || val > 12) {
+        cyclesInput.value = this.config.cyclesBeforeLong;
+        return;
+      }
+      this.config.cyclesBeforeLong = val;
+      this._saveConfig();
+    });
+
+    if (autoStartInput) autoStartInput.addEventListener('change', () => {
+      this.config.autoStart = autoStartInput.checked;
+      this._saveConfig();
+      toast(this.config.autoStart ? 'Auto-start on' : 'Auto-start off', 'info');
+    });
+
     if (resetSessionsBtn) {
       resetSessionsBtn.addEventListener('click', () => {
         this.config.completedSessions = 0;
         this._saveConfig();
         this._render();
-        toast('Session count reset', 'info');
+        toast('Sessions reset', 'info');
       });
     }
   }
